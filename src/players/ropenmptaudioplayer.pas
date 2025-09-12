@@ -1,0 +1,591 @@
+unit rOpenMptAudioPlayer;
+
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, libopenmpt, libraudio,
+  rAudioIntf, contnrs, syncobjs, math, ctypes;
+
+type
+  { TOpenMPTAudioPlayer }
+  TOpenMPTAudioPlayer = class(TInterfacedObject, IMusicPlayer)
+  private
+    FStream: TAudioStream;
+    FFilename: string;
+    FFileData: Pointer;
+    FFileSize: NativeUInt;
+    FOpenMPTModule: Popenmpt_module;
+    FIsPaused: Boolean;
+    FLoopMode: Boolean;
+    FCurrentTrack: Integer;
+    FPositionLock: TCriticalSection;
+    FTrackEndTriggered: Boolean;
+    FDurationSeconds: Double;
+
+    FEqBands: TEqBands;
+    FEqBandsDecay: TEqBandsDecay;
+
+    // Event handlers
+    FOnPlay: TPlayEvent;
+    FOnPause: TPauseEvent;
+    FOnStop: TStopEvent;
+    FOnEnd: TEndEvent;
+    FOnError: TErrorEvent;
+
+    class var FPlayers: TFPHashList;
+    class var FCurrentPlayer: TOpenMPTAudioPlayer;
+
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+
+    procedure InitializeAudioStream;
+    procedure ResetPlayback;
+    class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
+    procedure InternalStop(ClearModule: Boolean = True);
+    procedure CheckError(Condition: Boolean; const Msg: string);
+    procedure LoadModuleFile(const MusicFile: string);
+    procedure FreeModuleData;
+
+    procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+
+    const
+      DEFAULT_FREQ = 44100;
+      DEFAULT_BITS = 16;
+      DEFAULT_CHANNELS = 2;
+      BUFFER_SIZE = 8192;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // IMusicPlayer implementation
+    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+    procedure SetPosition(PositionMs: Integer);
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // Event properties
+    function GetOnPlay: TPlayEvent;
+    function GetOnPause: TPauseEvent;
+    function GetOnStop: TStopEvent;
+    function GetOnEnd: TEndEvent;
+    function GetOnError: TErrorEvent;
+    procedure SetOnPlay(AEvent: TPlayEvent);
+    procedure SetOnPause(AEvent: TPauseEvent);
+    procedure SetOnStop(AEvent: TStopEvent);
+    procedure SetOnEnd(AEvent: TEndEvent);
+    procedure SetOnError(AEvent: TErrorEvent);
+
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+  end;
+
+implementation
+
+{ TOpenMPTAudioPlayer }
+
+class constructor TOpenMPTAudioPlayer.ClassCreate;
+begin
+  FPlayers := TFPHashList.Create;
+  FCurrentPlayer := nil;
+end;
+
+class destructor TOpenMPTAudioPlayer.ClassDestroy;
+begin
+  FPlayers.Free;
+end;
+
+constructor TOpenMPTAudioPlayer.Create;
+var
+  i: integer;
+begin
+  inherited Create;
+  FTrackEndTriggered := False;
+  FIsPaused := False;
+  FLoopMode := False;
+  FCurrentTrack := 0;
+  FPositionLock := TCriticalSection.Create;
+  FFileData := nil;
+  FFileSize := 0;
+  FOpenMPTModule := nil;
+  FDurationSeconds := 0;
+
+  for i := 0 to EQ_BANDS - 1 do
+  begin
+    FEqBands[i] := 0;
+    FEqBandsDecay[i] := 0;
+  end;
+
+  InitializeAudioStream;
+end;
+
+destructor TOpenMPTAudioPlayer.Destroy;
+begin
+  InternalStop;
+  FreeModuleData;
+  FPositionLock.Free;
+  inherited Destroy;
+end;
+
+procedure TOpenMPTAudioPlayer.InitializeAudioStream;
+begin
+  SetAudioStreamBufferSizeDefault(BUFFER_SIZE);
+  FStream := LoadAudioStream(DEFAULT_FREQ, DEFAULT_BITS, DEFAULT_CHANNELS);
+  if not IsAudioStreamReady(FStream) then
+    raise Exception.Create('Failed to initialize audio stream');
+
+  FPlayers.Add(IntToStr(PtrInt(Self)), Self);
+  SetAudioStreamCallback(FStream, @AudioCallback);
+end;
+
+procedure TOpenMPTAudioPlayer.LoadModuleFile(const MusicFile: string);
+var
+  FileStream: TFileStream;
+  Error: cint;
+  ErrorMessage: pchar;
+begin
+  FreeModuleData;
+
+  try
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FFileSize := FileStream.Size;
+      GetMem(FFileData, FFileSize);
+      FileStream.ReadBuffer(FFileData^, FFileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Создаем OpenMPT модуль из памяти
+    FOpenMPTModule := openmpt_module_create_from_memory2(
+      FFileData, FFileSize,
+      nil, nil,  // logfunc, loguser
+      nil, nil,   // errfunc, erruser
+      @Error, @ErrorMessage,
+      nil         // ctls
+    );
+
+    if FOpenMPTModule = nil then
+    begin
+      if ErrorMessage <> nil then
+        raise Exception.Create('Failed to create OpenMPT module: ' + string(ErrorMessage))
+      else
+        raise Exception.Create('Failed to create OpenMPT module: Error ' + IntToStr(Error));
+    end;
+
+    // Получаем длительность трека
+    FDurationSeconds := openmpt_module_get_duration_seconds(FOpenMPTModule);
+
+    FFilename := MusicFile;
+  except
+    FreeModuleData;
+    raise;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.FreeModuleData;
+begin
+  if FOpenMPTModule <> nil then
+  begin
+    openmpt_module_destroy(FOpenMPTModule);
+    FOpenMPTModule := nil;
+  end;
+
+  if FFileData <> nil then
+  begin
+    FreeMem(FFileData);
+    FFileData := nil;
+    FFileSize := 0;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+var
+  i, j, SampleCount: Integer;
+  Sample: SmallInt;
+  ChannelCount: Integer;
+  SampleValue, Energy: Double;
+  BandFactors: array[0..5] of Double = (0.1, 0.3, 0.5, 0.7, 0.9, 1.1);
+begin
+  if size = 0 then Exit;
+
+  ChannelCount := DEFAULT_CHANNELS;
+  SampleCount := size div (DEFAULT_BITS div 8) div ChannelCount;
+
+  if SampleCount = 0 then Exit;
+
+  // Анализируем каждый 10-й семпл для производительности
+  for i := 0 to SampleCount - 1 do
+  begin
+    if i mod 10 <> 0 then Continue;
+
+    Sample := PSmallInt(buffer + i * ChannelCount * (DEFAULT_BITS div 8))^;
+    SampleValue := Abs(Sample) / 32768.0;
+
+    // Распределяем энергию по бэндам с разными коэффициентами
+    for j := 0 to High(FEqBands) do
+    begin
+      Energy := SampleValue * BandFactors[j] * (1.2 - j * 0.15);
+      FEqBands[j] := FEqBands[j] + Energy * Energy;
+    end;
+  end;
+
+  // Обрабатываем бэнды
+  for j := 0 to High(FEqBands) do
+  begin
+    FEqBands[j] := Sqrt(FEqBands[j] / (SampleCount / 10));
+    FEqBands[j] := Log10(FEqBands[j] * 50 + 1) * 0.8;
+
+    if FEqBands[j] > FEqBandsDecay[j] then
+      FEqBandsDecay[j] := FEqBands[j]
+    else
+      FEqBandsDecay[j] := FEqBandsDecay[j] * (0.88 + j * 0.02);
+
+    FEqBandsDecay[j] := Min(1.0, Max(0, FEqBandsDecay[j]));
+    FEqBands[j] := 0;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.ResetPlayback;
+begin
+  if FOpenMPTModule <> nil then
+  begin
+    openmpt_module_set_position_seconds(FOpenMPTModule, 0);
+  end;
+end;
+
+class procedure TOpenMPTAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
+var
+  SamplesRendered: csize_t;
+  CurrentPosition: Double;
+begin
+  if FCurrentPlayer = nil then Exit;
+
+  with FCurrentPlayer do
+  begin
+    FPositionLock.Enter;
+    try
+      if (FOpenMPTModule = nil) or FIsPaused then
+      begin
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
+      end;
+
+      // Рендерим звук в буфер
+      SamplesRendered := openmpt_module_read_interleaved_stereo(
+        FOpenMPTModule,
+        DEFAULT_FREQ,
+        frames,
+        pcint16(bufferData)
+      );
+
+      // TTF анализ
+      AnalyzeAudioBuffer(bufferData, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8));
+
+      // Проверяем окончание трека
+      CurrentPosition := openmpt_module_get_position_seconds(FOpenMPTModule);
+
+      if (SamplesRendered = 0) or (CurrentPosition >= FDurationSeconds) then
+      begin
+        if Assigned(FOnEnd) and (not FLoopMode) then
+        begin
+          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FTrackEndTriggered := True;
+        end;
+
+        if FCurrentPlayer.GetLoopMode then
+        begin
+          ResetPlayback;
+          FTrackEndTriggered := False;
+        end;
+      end;
+
+    finally
+      FPositionLock.Leave;
+      if FTrackEndTriggered then InternalStop(True);
+    end;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.CheckError(Condition: Boolean; const Msg: string);
+begin
+  if Condition and Assigned(FOnError) then
+    FOnError(Self, Msg);
+end;
+
+procedure TOpenMPTAudioPlayer.InternalStop(ClearModule: Boolean);
+begin
+  FPositionLock.Enter;
+  try
+    // Проверяем, является ли этот плеер текущим и активным
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+      StopAudioStream(FStream);
+      FCurrentPlayer := nil;
+
+      if ClearModule then
+        FreeModuleData;
+
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnStop) then
+        FOnStop(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.Play(const MusicFile: String; Track: Integer);
+begin
+  if not FileExists(MusicFile) then
+  begin
+    CheckError(True, 'File not found: ' + MusicFile);
+    Exit;
+  end;
+
+  FPositionLock.Enter;
+  try
+    // Останавливаем текущее воспроизведение
+    // Останавливаем текущее воспроизведение только если оно активно
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Загружаем новый модуль
+    try
+      LoadModuleFile(MusicFile);
+      FCurrentTrack := Track;
+
+      // Начинаем воспроизведение
+      FCurrentPlayer := Self;
+      PlayAudioStream(FStream);
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    except
+      on E: Exception do
+      begin
+        CheckError(True, 'Error loading module: ' + E.Message);
+        InternalStop;
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.Pause;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and not FIsPaused then
+    begin
+      PauseAudioStream(FStream);
+      FIsPaused := True;
+
+      if Assigned(FOnPause) then
+        FOnPause(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.Resume;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and FIsPaused then
+    begin
+      ResumeAudioStream(FStream);
+      FIsPaused := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.Stop;
+begin
+  InternalStop;
+end;
+
+procedure TOpenMPTAudioPlayer.SetPosition(PositionMs: Integer);
+var
+  PositionSeconds: Double;
+begin
+  FPositionLock.Enter;
+  try
+    if FOpenMPTModule <> nil then
+    begin
+      PositionSeconds := PositionMs / 1000;
+      openmpt_module_set_position_seconds(FOpenMPTModule, PositionSeconds);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TOpenMPTAudioPlayer.GetPosition: Integer;
+var
+  PositionSeconds: Double;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FOpenMPTModule <> nil then
+    begin
+      PositionSeconds := openmpt_module_get_position_seconds(FOpenMPTModule);
+      Result := Round(PositionSeconds * 1000);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TOpenMPTAudioPlayer.GetDuration: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FOpenMPTModule <> nil then
+    begin
+      Result := Round(FDurationSeconds * 1000);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.SetLoopMode(Mode: Boolean);
+begin
+  if FOpenMPTModule <> nil then
+  begin
+    if Mode then
+      openmpt_module_set_repeat_count(FOpenMPTModule, -1) // Бесконечное повторение
+    else
+      openmpt_module_set_repeat_count(FOpenMPTModule, 0); // Без повторения
+
+    FLoopMode := Mode;
+  end;
+end;
+
+function TOpenMPTAudioPlayer.GetLoopMode: Boolean;
+var
+  RepeatCount: cint32;
+begin
+  if FOpenMPTModule <> nil then
+  begin
+    RepeatCount := openmpt_module_get_repeat_count(FOpenMPTModule);
+    FLoopMode := (RepeatCount = -1);
+  end;
+  Result := FLoopMode;
+end;
+
+function TOpenMPTAudioPlayer.IsPlaying: Boolean;
+begin
+  Result := (FCurrentPlayer = Self) and not FIsPaused and (FOpenMPTModule <> nil);
+end;
+
+function TOpenMPTAudioPlayer.IsPaused: Boolean;
+begin
+  Result := FIsPaused;
+end;
+
+function TOpenMPTAudioPlayer.GetCurrentTrack: Integer;
+begin
+  Result := FCurrentTrack;
+end;
+
+function TOpenMPTAudioPlayer.GetCurrentFile: String;
+begin
+  Result := FFilename;
+end;
+
+function TOpenMPTAudioPlayer.GetTrackCount: Integer;
+begin
+  Result := 1; // OpenMPT обычно обрабатывает однодорожечные модули
+end;
+
+function TOpenMPTAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
+begin
+  Result := Self.FEqBandsDecay;
+end;
+
+// Event property getters/setters
+function TOpenMPTAudioPlayer.GetOnPlay: TPlayEvent;
+begin
+  Result := FOnPlay;
+end;
+
+function TOpenMPTAudioPlayer.GetOnPause: TPauseEvent;
+begin
+  Result := FOnPause;
+end;
+
+function TOpenMPTAudioPlayer.GetOnStop: TStopEvent;
+begin
+  Result := FOnStop;
+end;
+
+function TOpenMPTAudioPlayer.GetOnEnd: TEndEvent;
+begin
+  Result := FOnEnd;
+end;
+
+function TOpenMPTAudioPlayer.GetOnError: TErrorEvent;
+begin
+  Result := FOnError;
+end;
+
+procedure TOpenMPTAudioPlayer.SetOnPlay(AEvent: TPlayEvent);
+begin
+  FOnPlay := AEvent;
+end;
+
+procedure TOpenMPTAudioPlayer.SetOnPause(AEvent: TPauseEvent);
+begin
+  FOnPause := AEvent;
+end;
+
+procedure TOpenMPTAudioPlayer.SetOnStop(AEvent: TStopEvent);
+begin
+  FOnStop := AEvent;
+end;
+
+procedure TOpenMPTAudioPlayer.SetOnEnd(AEvent: TEndEvent);
+begin
+  FOnEnd := AEvent;
+end;
+
+procedure TOpenMPTAudioPlayer.SetOnError(AEvent: TErrorEvent);
+begin
+  FOnError := AEvent;
+end;
+
+end.

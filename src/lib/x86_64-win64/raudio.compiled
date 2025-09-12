@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Lazarus Version="4.99"/>
+  <Compiler Value="/home/vadim/fpcupdeluxe/fpcupdeluxe/fpc/bin/x86_64-linux/fpc.sh" Date="1754571970"/>
+  <Params Value="-Twin64 -MObjFPC -Scghi -O1 -g -gl -l -vewnhibq &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/&apos; &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/bindings&apos; &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/players&apos; -Fu/home/vadim/fpcupdeluxe/fpcupdeluxe/lazarus/packager/units/x86_64-win64 &apos;-FU/home/vadim/Рабочий стол/rAudioClass/src/lib/x86_64-win64/&apos; raudio.pas"/>
+</CONFIG>

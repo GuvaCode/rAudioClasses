@@ -1,0 +1,364 @@
+unit rAudioPlayer;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, libraudio,
+  rAudioIntf,
+  rAudioFileDetector,
+  rDefaultAudioPlayer,
+  rHivelyAudioPlayer,
+  rZxTuneAudioPlayer,
+  rOpenMptAudioPlayer,
+  rXmpAudioplayer;
+
+type
+  { TrAudioPlayer - базовый класс для всех аудиоплееров }
+  TrAudioPlayer = class
+  private
+    procedure SetOnEnd(AValue: TEndEvent);
+    procedure SetOnError(AValue: TErrorEvent);
+    procedure SetOnPause(AValue: TPauseEvent);
+    procedure SetOnPlay(AValue: TPlayEvent);
+    procedure SetOnStop(AValue: TStopEvent);
+  protected
+    FVolume: Single;
+    FTrackLoop: Boolean;
+    FCurrentTrack: Integer;
+    FCurrentFile: String;
+    FIsPlaying: Boolean;
+    FIsPaused: Boolean;
+
+    FEqBands: TEqBands;
+    FEqBandsDecay: TEqBandsDecay;
+
+    // События
+    FOnPlay: TPlayEvent;
+    FOnPause: TPauseEvent;
+    FOnStop: TStopEvent;
+    FOnEnd: TEndEvent;
+    FOnError: TErrorEvent;
+
+    // Плееры
+    FDefaultPlayer: IMusicPlayer;
+    FAyFlyPlayer:   IMusicPlayer;
+    FHivelyPlayer:  IMusicPlayer;
+    FZxTunePlayer:  IMusicPlayer;
+    FOpenMptPlayer: IMusicPlayer;
+    FXmpPlayer:     IMusicPlayer;
+    FCurrentPlayer: IMusicPlayer;
+
+    procedure InitializePlayers;
+
+    // Внутренние методы
+    procedure PlayHandleEvent(Sender: TObject; Track: Integer);
+    procedure PauseHandleEvent(Sender: TObject; Track: Integer);
+    procedure StopHandleEvent(Sender: TObject; Track: Integer);
+    procedure EndHandleEvent(Sender: TObject; Track: Integer; FinishedNormally: Boolean);
+    procedure ErrorHandleEvent(Sender: TObject; const Msg: string);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // Основные методы (должны быть переопределены в потомках)
+    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+
+    // Громкость
+    procedure SetVolume(Volume: Single);
+    function GetVolume: Single;
+
+    // Позиция
+    procedure SetPosition(PositionMs: Integer);
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+
+    // Режим повтора
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+
+    // Состояние
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+
+    // Информация о треке
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // События
+    property OnPlay: TPlayEvent read FOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read FOnPause write SetOnPause;
+    property OnStop: TStopEvent read FOnStop write SetOnStop;
+    property OnEnd: TEndEvent read FOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read FOnError write SetOnError;
+  end;
+
+implementation
+uses libhvl, libzxtune, libopenmpt, libxmp;
+{ TrAudioPlayer }
+
+constructor TrAudioPlayer.Create;
+begin
+  inherited;
+  // загружаем библиотеки
+  libraudio.LoadLib_rAudio(FindLibName(libraudio.library_name));
+  libhvl.LoadLib(FindLibName(libhvl.library_name));
+  libzxtune.LoadZXTuneLibrary(FindLibName(libzxtune.DEFAULT_LIB_NAME));
+  libopenmpt.LoadLib(FindLibName(libopenmpt.library_name));
+  libxmp.LoadLib(FindLibName(libxmp.XMP_LIB_NAME));
+  InitAudioDevice;
+
+  // Инициализируем плееры
+  InitializePlayers;
+  FVolume := 1.0;
+  FTrackLoop := True;
+  FCurrentTrack := -1;
+  FIsPlaying := False;
+  FIsPaused := False;
+end;
+
+destructor TrAudioPlayer.Destroy;
+begin
+  Stop;
+  inherited;
+end;
+
+procedure TrAudioPlayer.Play(const MusicFile: String; Track: Integer);
+var PlayerType: TPlayerType;
+begin
+  PlayerType := DetectAudioFileType(MusicFile);
+
+  FCurrentPlayer.Stop;
+  case PlayerType of
+    ptUnknown .. ptDefault: FCurrentPlayer := FDefaultPlayer; // По умолчанию
+    //ptAyFly: FCurrentPlayer := FAyFlyPlayer;
+    ptZxTune:  FCurrentPlayer := FZxTunePlayer;
+    ptHively:  FCurrentPlayer := FHivelyPlayer;
+    ptOpenMPT: FCurrentPlayer := FOpenMptPlayer;
+    ptXmp:     FCurrentPlayer := FXmpPlayer;
+  end;
+
+  if Assigned(FCurrentPlayer) then
+  begin
+    // запускаем воспроизведение
+    FCurrentPlayer.Play(MusicFile, Track);
+    // устанавливаем режим повтора
+    FCurrentPlayer.SetLoopMode(FTrackLoop);
+    FIsPlaying := True;
+    FIsPaused := False;
+    FCurrentFile := MusicFile;
+    FCurrentTrack := Track;
+  end;
+end;
+
+procedure TrAudioPlayer.Pause;
+begin
+  if Assigned(FCurrentPlayer) then
+  begin
+    FCurrentPlayer.Pause;
+    FIsPlaying := False;
+    FIsPaused := True;
+  end;
+end;
+
+procedure TrAudioPlayer.Resume;
+begin
+  if Assigned(FCurrentPlayer) then
+  begin
+    if FIsPaused then
+    begin
+      FCurrentPlayer.Resume;
+      FIsPlaying := True;
+      FIsPaused := False;
+    end;
+  end;
+end;
+
+procedure TrAudioPlayer.Stop;
+begin
+  if Assigned(FCurrentPlayer) then
+  begin
+    FCurrentPlayer.Stop;
+    FIsPlaying := False;
+    FIsPaused := False;
+  end;
+end;
+
+procedure TrAudioPlayer.SetOnEnd(AValue: TEndEvent);
+begin
+  if FOnEnd=AValue then Exit;
+  FOnEnd:=AValue;
+end;
+
+procedure TrAudioPlayer.SetOnError(AValue: TErrorEvent);
+begin
+  if FOnError=AValue then Exit;
+  FOnError:=AValue;
+end;
+
+procedure TrAudioPlayer.SetOnPause(AValue: TPauseEvent);
+begin
+  if FOnPause=AValue then Exit;
+  FOnPause:=AValue;
+end;
+
+procedure TrAudioPlayer.SetOnPlay(AValue: TPlayEvent);
+begin
+  if FOnPlay=AValue then Exit;
+  FOnPlay:=AValue;
+end;
+
+procedure TrAudioPlayer.SetOnStop(AValue: TStopEvent);
+begin
+  if FOnStop=AValue then Exit;
+  FOnStop:=AValue;
+end;
+
+procedure TrAudioPlayer.InitializePlayers;
+begin
+  FDefaultPlayer := TDefaultAudioPlayer.Create;
+  FDefaultPlayer.OnPlay := @PlayHandleEvent;
+  FDefaultPlayer.OnStop := @StopHandleEvent;
+  FDefaultPlayer.OnPause := @PauseHandleEvent;
+  FDefaultPlayer.OnEnd := @EndHandleEvent;
+  FDefaultPlayer.OnError := @ErrorHandleEvent;
+
+  FHivelyPlayer := THivelyAudioPlayer.Create;
+  FHivelyPlayer.OnPlay := @PlayHandleEvent;
+  FHivelyPlayer.OnStop := @StopHandleEvent;
+  FHivelyPlayer.OnPause := @PauseHandleEvent;
+  FHivelyPlayer.OnEnd := @EndHandleEvent;
+  FHivelyPlayer.OnError := @ErrorHandleEvent;
+
+  FZxTunePlayer := TZxTuneAudioPlayer.Create;
+  FZxTunePlayer.OnPlay := @PlayHandleEvent;
+  FZxTunePlayer.OnStop := @StopHandleEvent;
+  FZxTunePlayer.OnPause := @PauseHandleEvent;
+  FZxTunePlayer.OnEnd := @EndHandleEvent;
+  FZxTunePlayer.OnError := @ErrorHandleEvent;
+
+  FOpenMptPlayer := TOpenMPTAudioPlayer.Create;
+  FOpenMptPlayer.OnPlay := @PlayHandleEvent;
+  FOpenMptPlayer.OnStop := @StopHandleEvent;
+  FOpenMptPlayer.OnPause := @PauseHandleEvent;
+  FOpenMptPlayer.OnEnd := @EndHandleEvent;
+  FOpenMptPlayer.OnError := @ErrorHandleEvent;
+
+  FXmpPlayer := TXmpAudioPlayer.Create;
+  FXmpPlayer.OnPlay := @PlayHandleEvent;
+  FXmpPlayer.OnStop := @StopHandleEvent;
+  FXmpPlayer.OnPause := @PauseHandleEvent;
+  FXmpPlayer.OnEnd := @EndHandleEvent;
+  FXmpPlayer.OnError := @ErrorHandleEvent;
+
+  FCurrentPlayer := FDefaultPlayer; // По умолчанию
+end;
+
+procedure TrAudioPlayer.PlayHandleEvent(Sender: TObject; Track: Integer);
+begin
+  if Assigned(FOnPlay) then FOnPlay(Self, Track);
+end;
+
+procedure TrAudioPlayer.PauseHandleEvent(Sender: TObject; Track: Integer);
+begin
+  if Assigned(FOnPause) then FOnPause(Self, Track);
+end;
+
+procedure TrAudioPlayer.StopHandleEvent(Sender: TObject; Track: Integer);
+begin
+  if Assigned(FOnStop) then FOnStop(Self, Track);
+end;
+
+procedure TrAudioPlayer.EndHandleEvent(Sender: TObject; Track: Integer; FinishedNormally: Boolean);
+begin
+  if Assigned(FOnEnd) then FOnEnd(Self, Track, FinishedNormally);
+end;
+
+procedure TrAudioPlayer.ErrorHandleEvent(Sender: TObject; const Msg: string);
+begin
+  if Assigned(FOnError) then FOnError(Self, Msg);
+end;
+
+procedure TrAudioPlayer.SetVolume(Volume: Single);
+begin
+  FVolume := Volume;
+end;
+
+function TrAudioPlayer.GetVolume: Single;
+begin
+  Result := FVolume;
+end;
+
+procedure TrAudioPlayer.SetPosition(PositionMs: Integer);
+begin
+  if Assigned(FCurrentPlayer) then
+    FCurrentPlayer.SetPosition(PositionMs);
+end;
+
+function TrAudioPlayer.GetPosition: Integer;
+begin
+  if Assigned(FCurrentPlayer) then
+    Result := FCurrentPlayer.GetPosition
+  else
+    Result := 0;
+end;
+
+function TrAudioPlayer.GetDuration: Integer;
+begin
+  if Assigned(FCurrentPlayer) then
+    Result := FCurrentPlayer.GetDuration
+  else
+    Result := 0;
+end;
+
+procedure TrAudioPlayer.SetLoopMode(Mode: Boolean);
+begin
+  FTrackLoop := Mode;
+  if Assigned(FCurrentPlayer) then
+    FCurrentPlayer.SetLoopMode(FTrackLoop);
+end;
+
+function TrAudioPlayer.GetLoopMode: Boolean;
+begin
+  if Assigned(FCurrentPlayer) then
+  result := FCurrentPlayer.GetLoopMode else
+    if Assigned(FOnError) then FOnError(Self,'Not loop mode set');
+end;
+
+function TrAudioPlayer.IsPlaying: Boolean;
+begin
+  Result := FIsPlaying;
+end;
+
+function TrAudioPlayer.IsPaused: Boolean;
+begin
+  Result := FIsPaused;
+end;
+
+function TrAudioPlayer.GetCurrentTrack: Integer;
+begin
+  Result := FCurrentTrack;
+end;
+
+function TrAudioPlayer.GetCurrentFile: String;
+begin
+  Result := FCurrentFile;
+end;
+
+function TrAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
+begin
+  if Assigned(FCurrentPlayer) then
+    Result := FCurrentPlayer.GetEQBandsDecay
+  else
+    FillChar(Result, SizeOf(TEqBandsDecay), 0);
+end;
+
+
+end.

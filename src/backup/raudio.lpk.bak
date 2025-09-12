@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <Name Value="rAudio"/>
+    <Type Value="RunAndDesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <OtherUnitFiles Value="bindings;players"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Files>
+      <Item>
+        <Filename Value="raudioplayer.pas"/>
+        <UnitName Value="rAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="raudiofiledetector.pas"/>
+        <UnitName Value="rAudioFileDetector"/>
+      </Item>
+      <Item>
+        <Filename Value="raudiointf.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="rAudioIntf"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rdefaultaudioplayer.pas"/>
+        <UnitName Value="rDefaultAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rhivelyaudioplayer.pas"/>
+        <UnitName Value="rHivelyAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rzxtuneaudioplayer.pas"/>
+        <UnitName Value="rZxTuneAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/ropenmptaudioplayer.pas"/>
+        <UnitName Value="ropenmptaudioplayer"/>
+      </Item>
+      <Item>
+        <Filename Value="bindings/libraudio.pas"/>
+        <UnitName Value="libraudio"/>
+      </Item>
+    </Files>
+    <RequiredPkgs>
+      <Item>
+        <PackageName Value="FCL"/>
+      </Item>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

@@ -1,0 +1,42 @@
+   // Проверка на PT3 (ProTracker 3.x: "ProTracker 3.")
+    if (Header[0] = $50) and (Header[1] = $72) and  // 'Pr'
+       (Header[2] = $6F) and (Header[3] = $54) and  // 'oT'
+       (Header[4] = $72) and (Header[5] = $61) and  // 'ra'
+       (Header[6] = $63) and (Header[7] = $6B) and  // 'ck'
+       (Header[8] = $65) and (Header[9] = $72) and  // 'er'
+       (Header[10] = $20) and (Header[11] = $33) and // ' 3'
+       (Header[12] = $2E) then                      // '.'
+      Exit(ptAyFly);
+
+    // Проверка на Vortex Tracker I ("Vortex Tracker I")
+    if (Header[0] = $56) and (Header[1] = $6F) and  // 'Vo'
+       (Header[2] = $72) and (Header[3] = $74) and  // 'rt'
+       (Header[4] = $65) and (Header[5] = $78) and  // 'ex'
+       (Header[6] = $20) and (Header[7] = $54) and  // ' T'
+       (Header[8] = $72) and (Header[9] = $61) and  // 'ra'
+       (Header[10] = $63) and (Header[11] = $6B) and // 'ck'
+       (Header[12] = $65) and (Header[13] = $72) and // 'er'
+       (Header[14] = $20) and (Header[15] = $49) then // ' I'
+      Exit(ptAyFly);
+
+    // Vtx
+    if (Header[0] = $61) and (Header[1] = $79) then Exit(ptAyFly);
+
+    // Spectrum Pro Sound Creator chiptune PSC
+    if (Header[0] = $50) and (Header[1] = $53) and
+       (Header[2] = $43) and (Header[3] = $20) and
+       (Header[4] = $56) then Exit(ptAyFly);
+
+    //PSG chiptune
+    if (Header[0] = $50) and (Header[1] = $53) and
+       (Header[2] = $47) and (Header[3] = $1A) then Exit(ptAyFly);
+
+    //PSG chiptune(alt)
+    if (Header[0] = $50) and (Header[1] = $53) and
+       (Header[2] = $47) and (Header[3] = $23) then Exit(ptAyFly);
+
+    // У которых нет сигнатур определяем по расширению
+
+    if (tmpExt = '.pt1') or (tmpExt = '.pt2') or (tmpExt = '.asc') or (tmpExt = '.stc')
+    or (tmpExt = '.stp') then Exit(ptAyFly);
+

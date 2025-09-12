@@ -1,0 +1,75 @@
+unit rAudioIntf;
+
+{$mode objfpc}{$H+}
+
+interface
+uses
+  Classes;
+
+const
+  EQ_BANDS = 6;
+
+type
+  TEqBands = array[0..EQ_BANDS-1] of Single;
+  TEqBandsPeak = array[0..EQ_BANDS-1] of Single;
+  TEqBandsDecay = array[0..5] of Single;
+
+  TPlayEvent = procedure(Sender: TObject; Track: integer) of object;
+  TPauseEvent = procedure(Sender: TObject; Track: integer) of object;
+  TEndEvent = procedure(Sender: TObject; Track: integer; FinishedNormally: Boolean) of object;
+  TStopEvent = procedure(Sender: TObject; Track: integer) of object;
+  TErrorEvent = procedure(Sender: TObject; const ErrorMsg: string) of object;
+
+  { IMusicPlayer }
+  IMusicPlayer = interface // интерфейс аудиоплеера
+    ['{D84CD174-8EB8-4289-9CD1-43C4E65E0950}']
+    function GetOnEnd: TEndEvent;
+    function GetOnError: TErrorEvent;
+    function GetOnPause: TPauseEvent;
+    function GetOnPlay: TPlayEvent;
+    function GetOnStop: TStopEvent;
+
+    // Основные методы управления
+    procedure Play(const MusicFile: String; Track: Integer = 0); // Воспроизведение Track№ для чиптюнов которы содержат несколько треков
+    procedure Pause;
+    procedure Resume;
+    procedure SetOnEnd(AEvent: TEndEvent);
+    procedure SetOnError(AEvent: TErrorEvent);
+    procedure SetOnPause(AEvent: TPauseEvent);
+    procedure SetOnPlay(AEvent: TPlayEvent);
+    procedure SetOnStop(AEvent: TStopEvent);
+    procedure Stop;
+
+    // Управление позицией
+    procedure SetPosition(PositionMs: Integer); // Устанавливает позицию воспроизведения в миллисекундах (0 = начало трека)
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+
+    // Управление режимом повтора
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+
+    // Состояние плеера
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+
+    // Информация о треке
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // События
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+
+  end;
+
+implementation
+
+end.

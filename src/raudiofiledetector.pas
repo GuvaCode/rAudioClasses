@@ -1,0 +1,258 @@
+unit rAudioFileDetector;
+
+{$mode objfpc}{$H+}
+{$WARN 5027 off : Local variable "$1" is assigned but never used}
+interface
+
+uses
+  Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp;
+
+type
+  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP);
+
+function DetectAudioFileType(const AFileName: string): TPlayerType;
+function TestZxTune(const MusicFile: string): Boolean;
+function TestOpenMPT(const MusicFile: string): Boolean;
+function TestXMP(const MusicFile: string): Boolean;
+
+implementation
+
+function ReadFileHeader(const AFileName: string; Offset, Size: Integer): TBytes;
+var
+  FS: TFileStream;
+begin
+  Result := nil;
+  SetLength(Result, Size);
+  try
+    FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
+    try
+      if FS.Size >= Offset + Size then
+      begin
+        FS.Position := Offset;
+        FS.Read(Result[0], Size);
+      end
+      else
+        SetLength(Result, 0);
+    finally
+      FS.Free;
+    end;
+  except
+    SetLength(Result, 0);
+  end;
+end;
+
+function DetectAudioFileType(const AFileName: string): TPlayerType;
+var
+  Header: TBytes;
+  tmpExt: String;
+begin
+  Result := ptUnknown;
+
+  if not FileExists(AFileName) then Exit;
+
+  try
+    // Читаем первые 20 байт для базовой проверки
+    Header := ReadFileHeader(AFileName, 0, 20);
+    if Length(Header) < 20 then Exit;
+
+    tmpExt := LowerCase(ExtractFileExt(AFileName));
+
+    // Commodore Amiga HivelyTracker audio module .hvl
+    if (Header[0] = $48) and (Header[1] = $56) and
+       (Header[2] = $4C) then Exit(ptHively);
+    // Abyss' Highest eXperience module (v1)
+    if (Header[0] = $54) and (Header[1] = $48) and
+       (Header[2] = $58) and (Header[3] = $00) then
+      Exit(ptHively);
+    // Abyss' Highest eXperience module (v2)
+    if (Header[0] = $54) and (Header[1] = $48) and
+       (Header[2] = $58) and (Header[3] = $01) then
+      Exit(ptHively);
+
+    // Проверка ZX Spectrum модулей через ZXTune
+    if TestZxTune(AFileName) then
+      Exit(ptZxTune);
+
+
+
+    // Проверка модульных форматов через OpenMPT
+    if TestOpenMPT(AFileName) then
+      Exit(ptOpenMPT);
+
+    // Проверка модульных форматов через XMP
+    if TestXMP(AFileName) then
+      Exit(ptXMP);
+
+    // Проверка WAV (RIFF формата)
+    if (Header[0] = $52) and (Header[1] = $49) and
+       (Header[2] = $46) and (Header[3] = $46) then
+      Exit(ptDefault);
+    // Проверка FLAC (fLaC signature)
+    if (Header[0] = $66) and (Header[1] = $4C) and
+       (Header[2] = $61) and (Header[3] = $43) then
+      Exit(ptDefault);
+    // Проверка OGG (OggS)
+    if (Header[0] = $4F) and (Header[1] = $67) and
+       (Header[2] = $67) and (Header[3] = $53) then
+      Exit(ptDefault);
+    // Проверка QOA (The Quite OK Audio Format)
+    if (Header[0] = $71) and (Header[1] = $6F) and
+       (Header[2] = $61) then
+      Exit(ptDefault);
+    // Проверка MP3 (ID3v2 или MPEG frame sync)
+    if ((Header[0] = $49) and (Header[1] = $44) and (Header[2] = $33)) or  // ID3
+       ((Header[0] = $FF) and ((Header[1] and $E0) = $E0)) then            // MPEG frame sync
+      Exit(ptDefault);
+  except
+    on E: Exception do
+      Result := ptUnknown;
+  end;
+end;
+
+function TestZxTune(const MusicFile: string): Boolean;
+var
+  ZxTuneData: ZXTuneHandle;
+  ZxTuneModule: ZXTuneHandle;
+  FileStream: TFileStream;
+  FileData: Pointer;
+  FileSize: NativeUInt;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  try
+    // Загружаем файл в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FileSize := FileStream.Size;
+      GetMem(FileData, FileSize);
+      FileStream.ReadBuffer(FileData^, FileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Создаем ZXTune данные
+    ZxTuneData := ZXTune_CreateData(FileData, FileSize);
+    if ZxTuneData = nil then
+    begin
+      FreeMem(FileData);
+      Exit;
+    end;
+
+    // Пытаемся открыть модуль
+    ZxTuneModule := ZXTune_OpenModule(ZxTuneData);
+    if ZxTuneModule <> nil then
+    begin
+      Result := True; // Модуль успешно распознан
+      ZXTune_CloseModule(ZxTuneModule);
+    end;
+
+    // Освобождаем ресурсы
+    ZXTune_CloseData(ZxTuneData);
+    FreeMem(FileData);
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+function TestOpenMPT(const MusicFile: string): Boolean;
+var
+  OpenMPTModule: Popenmpt_module;
+  FileStream: TFileStream;
+  FileData: Pointer;
+  FileSize: csize_t;
+  Error: cint;
+  ErrorMessage: pchar;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  try
+    // Загружаем файл в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FileSize := FileStream.Size;
+      GetMem(FileData, FileSize);
+      FileStream.ReadBuffer(FileData^, FileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Пытаемся создать OpenMPT модуль
+    OpenMPTModule := openmpt_module_create_from_memory2(
+      FileData, FileSize,
+      nil, nil,  // logfunc, loguser
+      nil, nil,   // errfunc, erruser
+      @Error, @ErrorMessage,
+      nil         // ctls
+    );
+
+    if OpenMPTModule <> nil then
+    begin
+      Result := True; // Модуль успешно распознан
+      openmpt_module_destroy(OpenMPTModule);
+    end
+    else if ErrorMessage <> nil then
+    begin
+      // Освобождаем строку с ошибкой
+      openmpt_free_string(ErrorMessage);
+    end;
+
+    // Освобождаем данные файла
+    FreeMem(FileData);
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+function TestXMP(const MusicFile: string): Boolean;
+var
+  FileStream: TFileStream;
+  FileData: Pointer;
+  FileSize: LongInt;
+  TestInfo: xmp_test_info;
+  Error: Integer;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  try
+    // Загружаем файл в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FileSize := FileStream.Size;
+      GetMem(FileData, FileSize);
+      FileStream.ReadBuffer(FileData^, FileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Инициализируем структуру тестовой информации
+    FillChar(TestInfo, SizeOf(TestInfo), 0);
+
+    // Тестируем модуль из памяти
+    Error := xmp_test_module_from_memory(FileData, FileSize, TestInfo);
+
+    // Если ошибки нет (Error = 0), то модуль распознан
+    Result := (Error = 0);
+
+    // Освобождаем данные
+    FreeMem(FileData);
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+end.

@@ -1,0 +1,62 @@
+unit rAudioPlayerIntf;
+
+{$mode objfpc}{$H+}
+
+interface
+
+type
+  TPlayEvent = procedure(Sender: TObject; Track: integer) of object;
+  TPauseEvent = procedure(Sender: TObject; Track: integer) of object;
+  TEndEvent = procedure(Sender: TObject; Track: integer; FinishedNormally: Boolean) of object;
+  TStopEvent = procedure(Sender: TObject; Track: integer) of object;
+  TErrorEvent = procedure(Sender: TObject; const ErrorMsg: string) of object;
+
+  // Режимы повтора
+  TLoopMode = (
+    lmNoLoop,     // Без повтора
+    lmTrackLoop); // Повтор текущего трека
+
+  { IMusicPlayer }
+  IMusicPlayer = interface // интерфейс аудиоплеера
+    ['{D84CD174-8EB8-4289-9CD1-43C4E65E0950}']
+
+    // Основные методы управления
+    procedure Play(const MusicFile: String; Track: Integer = 0); // Воспроизведение Track№ для чиптюнов которы содержат несколько треков
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+
+    // Управление громкостью
+    procedure SetVolume(Volume: Single);
+    function GetVolume: Single;
+
+    // Управление позицией
+    procedure SetPosition(PositionMs: Integer); // Устанавливает позицию воспроизведения в миллисекундах (0 = начало трека)
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+
+    // Управление режимом повтора
+    procedure SetLoopMode(Mode: TLoopMode);
+    function GetLoopMode: TLoopMode;
+
+    // Состояние плеера
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+
+    // Информация о треке
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // События
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+
+  end;
+
+implementation
+
+end.

@@ -1,0 +1,299 @@
+unit libhvl;
+
+{$mode objfpc}{$h+}
+{$packrecords c}
+
+(*
+  project : Free Pascal header for libhvl (based on hvl2wav)
+  author  : TRon
+  date    : feb 2025
+  -------------------------------------------------------------------
+  name    : hivelytracker library
+  author  : Peter Gordon
+  version : 1.9
+  web     : https://www.hivelytracker.co.uk/index.php
+  repo    : https://github.com/pete-gordon/hivelytracker
+*)
+
+
+interface
+
+uses
+  ctypes;
+
+const
+  {$if defined(linux)}
+  library_name = 'libhvl.so.1.9.0';
+  {$endif}
+  {$if defined(windows)}
+  library_name = 'libhvl.dll';
+  {$endif}
+
+type
+  cfloat64 = cdouble;
+
+const
+  // Woohoo!
+  MAX_CHANNELS = 16;
+
+type
+  Thvl_envelope             = record
+    aFrames, aVolume        : cint16;
+    dFrames, dVolume        : cint16;
+    sFrames                 : cint16;
+    rFrames, rVolume        : cint16;
+    pad                     : cint16;
+  end;
+
+  Thvl_plsentry             = record
+    ple_Note                : cuint8;
+    ple_Waveform            : cuint8;
+    ple_Fixed               : cint16;
+    ple_FX                  : packed array[0..pred(2)] of cint8;
+    ple_FXParam             : packed array[0..pred(2)] of cint8;
+  end;
+  Phvl_plsentry             = ^Thvl_plsentry;
+
+  Thvl_plist                = record
+    pls_Speed               : cint16;
+    pls_Length              : cint16;
+    pls_Entries             : Phvl_plsentry;
+  end;
+  Phvl_plist                = ^Thvl_plist;
+
+  Thvl_instrument           = record
+    ins_Name                : packed array[0..pred(128)] of char;
+    ins_Volume              : cuint8;
+    ins_WaveLength          : cuint8;
+    ins_FilterLowerLimit    : cuint8;
+    ins_FilterUpperLimit    : cuint8;
+    ins_FilterSpeed         : cuint8;
+    ins_SquareLowerLimit    : cuint8;
+    ins_SquareUpperLimit    : cuint8;
+    ins_SquareSpeed         : cuint8;
+    ins_VibratoDelay        : cuint8;
+    ins_VibratoSpeed        : cuint8;
+    ins_VibratoDepth        : cuint8;
+    ins_HardCutRelease      : cuint8;
+    ins_HardCutReleaseFrames: cuint8;
+    ins_Envelope            : Thvl_envelope;
+    ins_PList               : Thvl_plist;
+  end;
+  Phvl_instrument           = ^Thvl_instrument;
+
+  Thvl_position             = record
+    pos_Track               : packed array[0..pred(MAX_CHANNELS)] of cuint8;
+    pos_Transpose           : packed array[0..pred(MAX_CHANNELS)] of cint8;
+  end;
+  Phvl_position             = ^Thvl_position;
+
+  Thvl_step                 = record
+    stp_Note                : cuint8;
+    stp_Instrument          : cuint8;
+    stp_FX                  : cuint8;
+    stp_FXParam             : cuint8;
+    stp_FXb                 : cuint8;
+    stp_FXbParam            : cuint8;
+  end;
+  Phvl_Step                 = ^Thvl_step;
+
+  Thvl_voice                = record
+    vc_Track                : cint16;
+    vc_NextTrack            : cint16;
+    vc_Transpose            : cint16;
+    vc_NextTranspose        : cint16;
+    vc_OverrideTranspose    : cint16;            // 1.5
+    vc_ADSRVolume           : cint32;
+    vc_ADSR                 : Thvl_envelope;
+    vc_Instrument           : Phvl_instrument;
+    vc_SamplePos            : cuint32;
+    vc_Delta                : cuint32;
+    vc_InstrPeriod          : cuint16;
+    vc_TrackPeriod          : cuint16;
+    vc_VibratoPeriod        : cuint16;
+    vc_WaveLength           : cuint16;
+    vc_NoteMaxVolume        : cint16;
+    vc_PerfSubVolume        : cuint16;
+    vc_NewWaveform          : cuint8;
+    vc_Waveform             : cuint8;
+    vc_PlantPeriod          : cuint8;
+    vc_VoiceVolume          : cuint8;
+    vc_PlantSquare          : cuint8;
+    vc_IgnoreSquare         : cuint8;
+    vc_FixedNote            : cuint8;
+    vc_VolumeSlideUp        : cint16;
+    vc_VolumeSlideDown      : cint16;
+    vc_HardCut              : cint16;
+    vc_HardCutRelease       : cuint8;
+    vc_HardCutReleaseF      : cint16;
+    vc_PeriodSlideOn        : cuint8;
+    vc_PeriodSlideSpeed     : cint16;
+    vc_PeriodSlidePeriod    : cint16;
+    vc_PeriodSlideLimit     : cint16;
+    vc_PeriodSlideWithLimit : cint16;
+    vc_PeriodPerfSlideSpeed : cint16;
+    vc_PeriodPerfSlidePeriod: cint16;
+    vc_PeriodPerfSlideOn    : cuint8;
+    vc_VibratoDelay         : cint16;
+    vc_VibratoSpeed         : cint16;
+    vc_VibratoCurrent       : cint16;
+    vc_VibratoDepth         : cint16;
+    vc_SquareOn             : cint16;
+    vc_SquareInit           : cint16;
+    vc_SquareWait           : cint16;
+    vc_SquareLowerLimit     : cint16;
+    vc_SquareUpperLimit     : cint16;
+    vc_SquarePos            : cint16;
+    vc_SquareSign           : cint16;
+    vc_SquareSlidingIn      : cint16;
+    vc_SquareReverse        : cint16;
+    vc_FilterOn             : cuint8;
+    vc_FilterInit           : cuint8;
+    vc_FilterWait           : cint16;
+    vc_FilterSpeed          : cint16;
+    vc_FilterUpperLimit     : cint16;
+    vc_FilterLowerLimit     : cint16;
+    vc_FilterPos            : cint16;
+    vc_FilterSign           : cint16;
+    vc_FilterSlidingIn      : cint16;
+    vc_IgnoreFilter         : cint16;
+    vc_PerfCurrent          : cint16;
+    vc_PerfSpeed            : cint16;
+    vc_PerfWait             : cint16;
+    vc_PerfList             : phvl_plist;
+    vc_AudioPointer         : pcint8;
+    vc_AudioSource          : pcint8;
+    vc_NoteDelayOn          : cuint8;
+    vc_NoteCutOn            : cuint8;
+    vc_NoteDelayWait        : cint16;
+    vc_NoteCutWait          : cint16;
+    vc_AudioPeriod          : cint16;
+    vc_AudioVolume          : cint16;
+    vc_WNRandom             : cint32;
+    vc_MixSource            : pcint8;
+    vc_SquareTempBuffer     : packed array[0..pred($80)] of cint8;
+    vc_VoiceBuffer          : packed array[0..pred($282*4)] of cint8;
+    vc_VoiceNum             : cuint8;
+    vc_TrackMasterVolume    : cuint8;
+    vc_TrackOn              : cuint8;
+    vc_VoicePeriod          : cint16;
+    vc_Pan                  : cuint32;
+    vc_SetPan               : cuint32;    // New for 1.4
+    vc_PanMultLeft          : cuint32;
+    vc_PanMultRight         : cuint32;
+    vc_RingSamplePos        : cuint32;
+    vc_RingDelta            : cuint32;
+    vc_RingMixSource        : pcint8;
+    vc_RingPlantPeriod      : cuint8;
+    vc_RingInstrPeriod      : cint16;
+    vc_RingBasePeriod       : cint16;
+    vc_RingAudioPeriod      : cint16;
+    vc_RingAudioSource      : pcint8;
+    vc_RingNewWaveform      : cuint8;
+    vc_RingWaveform         : cuint8;
+    vc_RingFixedPeriod      : cuint8;
+    vc_RingVoiceBuffer      : packed array[0..pred($282*4)] of cint8;
+  end;
+  Phvl_voice                = ^Thvl_voice;
+
+  Thvl_tune                 = record
+    ht_Name                 : packed array[0..pred(128)] of char;
+    ht_SongNum              : cuint16;
+    ht_Frequency            : cuint32;
+    ht_FreqF                : cfloat64;
+    ht_WaveformTab          : array[0..pred(MAX_CHANNELS)] of pcint8;
+    ht_Restart              : cuint16;
+    ht_PositionNr           : cuint16;
+    ht_SpeedMultiplier      : cuint8;
+    ht_TrackLength          : cuint8;
+    ht_TrackNr              : cuint8;
+    ht_InstrumentNr         : cuint8;
+    ht_SubsongNr            : cuint8;
+    ht_PosJump              : cuint16;
+    ht_PlayingTime          : cuint32;
+    ht_Tempo                : cint16;
+    ht_PosNr                : cint16;
+    ht_StepWaitFrames       : cint16;
+    ht_NoteNr               : cint16;
+    ht_PosJumpNote          : cuint16;
+    ht_GetNewPosition       : cuint8;
+    ht_PatternBreak         : cuint8;
+    ht_SongEndReached       : cuint8;
+    ht_Stereo               : cuint8;
+    ht_Subsongs             : pcuint16;
+    ht_Channels             : cuint16;
+    ht_Positions            : phvl_position;
+    ht_Tracks               : array[0..pred(256), 0..pred(64)] of Thvl_step;
+    ht_Instruments          : phvl_instrument;
+    ht_Voices               : array[0..pred(MAX_CHANNELS)] of Thvl_voice;
+    ht_defstereo            : cint32;
+    ht_defpanleft           : cint32;
+    ht_defpanright          : cint32;
+    ht_mixgain              : cint32;
+    ht_Version              : cuint8;
+  end;
+  Phvl_tune                 = ^Thvl_tune;
+
+var
+  hvl_DecodeFrame : procedure(ht: phvl_tune; buf1: pcint8; buf2: pcint8; bufmod: cint32); cdecl;
+  hvl_InitReplayer: procedure; cdecl;
+  hvl_InitSubsong : function (ht: phvl_tune; nr: cuint32): cbool; cdecl;
+  hvl_LoadTune    : function (name: pchar; freq: cuint32; defstereo: cuint32): phvl_Tune; cdecl;
+  hvl_FreeTune    : procedure(ht: phvl_tune); cdecl;
+
+  procedure LoadLib(const aLibName: string);
+//  function FindLibName(aLibName: string): string;
+// ToDo:
+// #define Period2Freq(period) ((3546897.f * 65536.f) / (period))
+//  function Period2Freq:
+
+
+implementation
+
+uses
+  sysutils, dynlibs;
+
+var
+  library_handle: TLibHandle;
+
+{
+function FindLibName(aLibName: string): string;
+var
+  PathNames : array of string = ('.', '.lib', 'lib','x86_64-linux');
+  PathName  : string;
+begin
+  for PathName in PathNames do
+    if FileExists(PathName + '/' + aLibName) then
+    begin
+      FindLibName := PathName + '/' + aLibName;
+      exit;
+    end;
+
+  FindLibName := aLibName;
+end;
+   }
+procedure LoadLibFn(var fn_var; const fn_name: string);
+begin
+  pointer(fn_var) := GetProcedureAddress(library_handle, fn_name);
+end;
+
+procedure LoadLib(const aLibName: string);
+begin
+  library_handle := LoadLibrary(aLibName);
+
+  if library_handle = NilHandle then
+  begin
+    writeln(GetLoadErrorStr);
+    runError(2);
+  end;
+
+  LoadLibFn(hvl_DecodeFrame , 'hvl_DecodeFrame');
+  LoadLibFn(hvl_InitReplayer, 'hvl_InitReplayer');
+  LoadLibFn(hvl_InitSubsong , 'hvl_InitSubsong');
+  LoadLibFn(hvl_LoadTune    , 'hvl_LoadTune');
+  LoadLibFn(hvl_FreeTune    , 'hvl_FreeTune');
+end;
+
+initialization
+ // LoadLib(FindLibName(library_name));
+end.
