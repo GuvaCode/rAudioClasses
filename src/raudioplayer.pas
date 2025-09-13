@@ -8,13 +8,19 @@ uses
   Classes, SysUtils, libraudio,
   rAudioIntf,
   rAudioFileDetector,
-  rDefaultAudioPlayer,
-  rHivelyAudioPlayer,
+  rDefaultAudioPlayer
+{  rHivelyAudioPlayer,
   rZxTuneAudioPlayer,
   rOpenMptAudioPlayer,
-  rXmpAudioplayer;
+  rXmpAudioplayer,
+  rStSoundAudioPlayer,
+  rAsapAudioPlayer};
 
 type
+  TModuleVisble = record
+    ModuleHively: Boolean;  // todo добавить
+  end;
+
   { TrAudioPlayer - базовый класс для всех аудиоплееров }
   TrAudioPlayer = class
   private
@@ -42,13 +48,15 @@ type
     FOnError: TErrorEvent;
 
     // Плееры
-    FDefaultPlayer: IMusicPlayer;
-    FAyFlyPlayer:   IMusicPlayer;
-    FHivelyPlayer:  IMusicPlayer;
-    FZxTunePlayer:  IMusicPlayer;
-    FOpenMptPlayer: IMusicPlayer;
-    FXmpPlayer:     IMusicPlayer;
-    FCurrentPlayer: IMusicPlayer;
+    FDefaultPlayer  :IMusicPlayer;
+    FAyFlyPlayer    :IMusicPlayer;
+    FHivelyPlayer   :IMusicPlayer;
+    FZxTunePlayer   :IMusicPlayer;
+    FOpenMptPlayer  :IMusicPlayer;
+    FXmpPlayer      :IMusicPlayer;
+    FStSoundPlayer  :IMusicPlayer;
+    FAsapPlayer     :IMusicPlayer;
+    FCurrentPlayer  :IMusicPlayer;
 
     procedure InitializePlayers;
 
@@ -101,18 +109,26 @@ type
   end;
 
 implementation
-uses libhvl, libzxtune, libopenmpt, libxmp;
+{uses libhvl,
+     libzxtune,
+     libopenmpt,
+     libxmp,
+     libstsoundlibrary,
+     libAsap;
+   }
 { TrAudioPlayer }
 
 constructor TrAudioPlayer.Create;
 begin
   inherited;
   // загружаем библиотеки
-  libraudio.LoadLib_rAudio(FindLibName(libraudio.library_name));
-  libhvl.LoadLib(FindLibName(libhvl.library_name));
-  libzxtune.LoadZXTuneLibrary(FindLibName(libzxtune.DEFAULT_LIB_NAME));
-  libopenmpt.LoadLib(FindLibName(libopenmpt.library_name));
-  libxmp.LoadLib(FindLibName(libxmp.XMP_LIB_NAME));
+ // libraudio.LoadLib_rAudio(FindLibName(libraudio.library_name));
+  //libhvl.LoadLib(FindLibName(libhvl.library_name));
+  //libzxtune.LoadZXTuneLibrary(FindLibName(libzxtune.DEFAULT_LIB_NAME));
+  //libopenmpt.LoadLib(FindLibName(libopenmpt.library_name));
+ // libxmp.LoadLib(FindLibName(libxmp.XMP_LIB_NAME));
+ // libstsoundlibrary.LoadLib(FindLibName(libstsoundlibrary.library_name));
+ // libasap.LoadASAPLibrary(FindLibName(libasap.DEFAULT_LIB_NAME));
   InitAudioDevice;
 
   // Инициализируем плееры
@@ -143,6 +159,8 @@ begin
     ptHively:  FCurrentPlayer := FHivelyPlayer;
     ptOpenMPT: FCurrentPlayer := FOpenMptPlayer;
     ptXmp:     FCurrentPlayer := FXmpPlayer;
+    ptStSound: FCurrentPlayer := FStSoundPlayer;
+    ptASAP:    FCurrentPlayer := FAsapPlayer;
   end;
 
   if Assigned(FCurrentPlayer) then
@@ -229,7 +247,7 @@ begin
   FDefaultPlayer.OnPause := @PauseHandleEvent;
   FDefaultPlayer.OnEnd := @EndHandleEvent;
   FDefaultPlayer.OnError := @ErrorHandleEvent;
-
+ {
   FHivelyPlayer := THivelyAudioPlayer.Create;
   FHivelyPlayer.OnPlay := @PlayHandleEvent;
   FHivelyPlayer.OnStop := @StopHandleEvent;
@@ -258,6 +276,20 @@ begin
   FXmpPlayer.OnEnd := @EndHandleEvent;
   FXmpPlayer.OnError := @ErrorHandleEvent;
 
+  FStSoundPlayer := TStSoundAudioPlayer.Create;
+  FStSoundPlayer.OnPlay := @PlayHandleEvent;
+  FStSoundPlayer.OnStop := @StopHandleEvent;
+  FStSoundPlayer.OnPause := @PauseHandleEvent;
+  FStSoundPlayer.OnEnd := @EndHandleEvent;
+  FStSoundPlayer.OnError := @ErrorHandleEvent;
+
+  FAsapPlayer := TAsapAudioPlayer.Create;
+  FAsapPlayer.OnPlay := @PlayHandleEvent;
+  FAsapPlayer.OnStop := @StopHandleEvent;
+  FAsapPlayer.OnPause := @PauseHandleEvent;
+  FAsapPlayer.OnEnd := @EndHandleEvent;
+  FAsapPlayer.OnError := @ErrorHandleEvent;
+  }
   FCurrentPlayer := FDefaultPlayer; // По умолчанию
 end;
 

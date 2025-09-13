@@ -22,174 +22,11 @@ uses
 
 const
   {$ifdef linux}
-  library_name = 'libopenmpt.so.4';
+  library_name = 'libopenmpt.so.6';
   {$endif}
 
 
-///*!
-// * \page libopenmpt_c_overview C API
-// *
-// * \section libopenmpt_c_error Error Handling
-// *
-// * - Functions with no return value in the corresponding C++ API return 0 on
-// * failure and 1 on success.
-// * - Functions that return a string in the corresponding C++ API return a
-// * dynamically allocated const char *. In case of failure or memory allocation
-// * failure, a NULL pointer is returned.
-// * - Functions that return integer values signal error condition by returning
-// * an invalid value (-1 in most cases, 0 in some cases).
-// * - All functions that work on an \ref openmpt_module object will call an
-// * \ref openmpt_error_func and depending on the value returned by this function
-// * log the error code and/xor/or store it inside the openmpt_module object.
-// * Stored error codes can be accessed with the openmpt_module_error_get_last()
-// * and openmpt_module_error_get_last_message(). Stored errors will not get
-// * cleared automatically and should be reset with openmpt_module_error_clear().
-// * - Some functions not directly related to an \ref openmpt_module object take
-// * an explicit \ref openmpt_error_func error function callback and a pointer to
-// * an int and behave analog to the functions working on an \ref openmpt_module
-// * object.
-// *
-// * \section libopenmpt_c_strings Strings
-// *
-// * - All strings returned from libopenmpt are encoded in UTF-8.
-// * - All strings passed to libopenmpt should also be encoded in UTF-8.
-// * Behaviour in case of invalid UTF-8 is unspecified.
-// * - libopenmpt does not enforce or expect any particular Unicode
-// * normalization form.
-// * - All strings returned from libopenmpt are dynamically allocated and must
-// * be freed with openmpt_free_string(). Do NOT use the C standard library
-// * free() for libopenmpt strings as that would make your code invalid on
-// * windows when dynamically linking against libopenmpt which itself statically
-// * links to the C runtime.
-// * - All strings passed to libopenmpt are copied. No ownership is assumed or
-// * transferred.
-// *
-// * \section libopenmpt_c_fileio File I/O
-// *
-// * libopenmpt can use 3 different strategies for file I/O.
-// *
-// * - openmpt_module_create_from_memory2() will load the module from the provided
-// * memory buffer, which will require loading all data upfront by the library
-// * caller.
-// * - openmpt_module_create2() with a seekable stream will load the module via
-// * callbacks to the stream interface. libopenmpt will not implement an
-// * additional buffering layer in this case which means the callbacks are assumed
-// * to be performant even with small i/o sizes.
-// * - openmpt_module_create2() with an unseekable stream will load the module via
-// * callbacks to the stream interface. libopempt will make an internal copy as
-// * it goes along, and sometimes have to pre-cache the whole file in case it
-// * needs to know the complete file size. This strategy is intended to be used
-// * if the file is located on a high latency network.
-// *
-// * | create function                                 | speed  | memory consumption |
-// * | ----------------------------------------------: | :----: | :----------------: |
-// * | openmpt_module_create_from_memory2()            | <p style="background-color:green" >fast  </p> | <p style="background-color:yellow">medium</p> |
-// * | openmpt_module_create2() with seekable stream   | <p style="background-color:red"   >slow  </p> | <p style="background-color:green" >low   </p> |
-// * | openmpt_module_create2() with unseekable stream | <p style="background-color:yellow">medium</p> | <p style="background-color:red"   >high  </p> |
-// *
-// * In all cases, the data or stream passed to the create function is no longer
-// * needed after the openmpt_module has been created and can be freed by the
-// * caller.
-// *
-// * \section libopenmpt_c_outputformat Output Format
-// *
-// * libopenmpt supports a wide range of PCM output formats:
-// * [8000..192000]/[mono|stereo|quad]/[f32|i16].
-// *
-// * Unless you have some very specific requirements demanding a particular aspect
-// * of the output format, you should always prefer 48000/stereo/f32 as the
-// * libopenmpt PCM format.
-// *
-// * - Please prefer 48000Hz unless the user explicitly demands something else.
-// * Practically all audio equipment and file formats use 48000Hz nowadays.
-// * - Practically all module formats are made for stereo output. Mono will not
-// * give you any measurable speed improvements and can trivially be obtained from
-// * the stereo output anyway. Quad is not expected by almost all modules and even
-// * if they do use surround effects, they expect the effects to be mixed to
-// * stereo.
-// * - Floating point output provides headroom instead of hard clipping if the
-// * module is louder than 0dBFs, will give you a better signal-to-noise ratio
-// * than int16 output, and avoid the need to apply an additional dithering to the
-// * output by libopenmpt. Unless your platform has no floating point unit at all,
-// * floating point will thus also be slightly faster.
-// *
-// * \section libopenmpt_c_threads libopenmpt in multi-threaded environments
-// *
-// * - libopenmpt is thread-aware.
-// * - Individual libopenmpt objects are not thread-safe.
-// * - libopenmpt itself does not spawn any user-visible threads but may spawn
-// * threads for internal use.
-// * - You must ensure to only ever access a particular libopenmpt object from a
-// * single thread at a time.
-// * - Consecutive accesses can happen from different threads.
-// * - Different objects can be accessed concurrently from different threads.
-// *
-// * \section libopenmpt_c_staticlinking Statically linking to libopenmpt
-// *
-// * libopenmpt is implemented in C++. This implies that linking to libopenmpt
-// * statically requires linking to the C++ runtime and standard library. The
-// * **highly preferred and recommended** way to do this is by using the C++
-// * compiler instead of the platform linker to do the linking. This will do all
-// * necessary things that are C++ specific (in particular, it will pull in the
-// * appropriate runtime and/or library). If for whatever reason it is not
-// * possible to use the C++ compiler for statically linking against libopenmpt,
-// * the libopenmpt build system can list the required libraries in the pkg-config
-// * file `libopenmpt.pc`. However, there is no reliable way to determine the name
-// * of the required library or libraries from within the build system. The
-// * libopenmpt autotools `configure` and plain `Makefile` honor the custom
-// * variable `CXXSTDLIB_PCLIBSPRIVATE` which serves the sole purpose of listing
-// * the standard library (or libraries) required for static linking. The contents
-// * of this variable will be put in `libopenmpt.pc` `Libs.private` and used for
-// * nothing else.
-// *
-// * This problem is inherent to libraries implemented in C++ that can also be used
-// * without a C++ compiler. Other libraries try to solve that by listing
-// * `-lstdc++` unconditionally in `Libs.private`. However, that will break
-// * platforms that use a different C++ standard library (in particular FreeBSD).
-// *
-// * See https://lists.freedesktop.org/archives/pkg-config/2016-August/001055.html .
-// *
-// * Dymically linking to libopenmpt does not require anything special and will
-// * work as usual (and exactly as done for libraries implemented in C).
-// *
-// * Note: This section does not apply when using Microsoft Visual Studio or
-// * Andriod NDK ndk-build build systems.
-// *
-// * \section libopenmpt_c_detailed Detailed documentation
-// *
-// * \ref libopenmpt_c
-// *
-// * In case a function is not documented here, you might want to look at the
-// * \ref libopenmpt_cpp documentation. The C and C++ APIs are kept semantically
-// * as close as possible.
-// *
-// * \section libopenmpt_c_examples Examples
-// *
-// * \subsection libopenmpt_c_example_unsafe Unsafe, simplified example without any error checking to get a first idea of the API
-// * \include libopenmpt_example_c_unsafe.c
-// * \subsection libopenmpt_c_example_file FILE*
-// * \include libopenmpt_example_c.c
-// * \subsection libopenmpt_c_example_inmemory in memory
-// * \include libopenmpt_example_c_mem.c
-// * \subsection libopenmpt_c_example_stdout reading FILE* and writing PCM data to STDOUT (usable without PortAudio)
-// * \include libopenmpt_example_c_stdout.c
-// *
-// */
-
-///*! \defgroup libopenmpt_c libopenmpt C */
-
-///*! \addtogroup libopenmpt_c
-// * @{
-// */
-
-
 var
-  ///*! \brief Get the libopenmpt version number
-  // *
-  // * Returns the libopenmpt version number.
-  // * \return The value represents (major << 24 + minor << 16 + patch << 0).
-  // * \remarks libopenmpt < 0.3.0-pre used the following scheme: (major << 24 + minor << 16 + revision).
-  // */
   openmpt_get_library_version : function(): cuint32; cdecl;
 
   ///*! \brief Get the core version number
@@ -1715,5 +1552,8 @@ end;
 
 
 initialization
-//  LoadLib(FindLibName(library_name));
+
+finalization
+//  if library_handle <> NilHandle then
+//    UnloadLibrary(library_handle);
 end.

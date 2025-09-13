@@ -22,7 +22,7 @@ uses
 
 const
   {$ifdef linux}
-  library_name = 'libopenmpt.so.4';
+  library_name = 'libopenmpt.so.6';
   {$endif}
 
 
@@ -1568,7 +1568,7 @@ var
   openmpt_module_ctl_set_text: function (mod_: Popenmpt_module; const ctl: pchar; const value: pchar): cint; cdecl;
 
 ///* remember to add new functions to both C and C++ interfaces and to increase OPENMPT_API_VERSION_MINOR */
-
+  procedure LoadLib(const aLibName: string);
 
 implementation
 
@@ -1715,5 +1715,8 @@ end;
 
 
 initialization
-//  LoadLib(FindLibName(library_name));
+
+finalization
+//  if library_handle <> NilHandle then
+//    UnloadLibrary(library_handle);
 end.

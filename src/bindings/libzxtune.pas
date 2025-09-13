@@ -152,6 +152,6 @@ end;
 initialization
 
 finalization
-  if library_handle <> NilHandle then
-    UnloadLibrary(library_handle);
+//  if library_handle <> NilHandle then
+//    UnloadLibrary(library_handle);
 end.

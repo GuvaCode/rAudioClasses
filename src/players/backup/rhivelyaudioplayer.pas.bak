@@ -296,6 +296,9 @@ procedure THivelyAudioPlayer.InternalStop(ClearTune: Boolean);
 begin
   FPositionLock.Enter;
   try
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+
     if FCurrentPlayer = Self then
     begin
       StopAudioStream(FStream);
@@ -313,6 +316,8 @@ begin
 
     if Assigned(FOnStop) then
       FOnStop(Self, FCurrentTrack);
+
+    end;
   finally
     FPositionLock.Leave;
   end;

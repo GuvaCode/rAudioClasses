@@ -328,20 +328,24 @@ procedure TXmpAudioPlayer.InternalStop(ClearModule: Boolean);
 begin
   FPositionLock.Enter;
   try
-    if FCurrentPlayer = Self then
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
     begin
-      StopAudioStream(FStream);
-      FCurrentPlayer := nil;
-    end;
 
-    if ClearModule then
-      FreeModuleData;
+      if FCurrentPlayer = Self then
+      begin
+        StopAudioStream(FStream);
+        FCurrentPlayer := nil;
+       end;
+
+      if ClearModule then
+        FreeModuleData;
 
     FIsPaused := False;
     FTrackEndTriggered := False;
 
     if Assigned(FOnStop) then
       FOnStop(Self, FCurrentTrack);
+    end;//
   finally
     FPositionLock.Leave;
   end;

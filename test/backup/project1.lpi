@@ -60,6 +60,7 @@
         <DebugInfoType Value="dsDwarf3"/>
       </Debugging>
       <Options>
+        <LinkerOptions Value="-lm -lc"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>

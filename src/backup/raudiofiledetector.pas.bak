@@ -5,15 +5,16 @@ unit rAudioFileDetector;
 interface
 
 uses
-  Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp;
+  Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp, libasap;
 
 type
-  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP);
+  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP);
 
 function DetectAudioFileType(const AFileName: string): TPlayerType;
 function TestZxTune(const MusicFile: string): Boolean;
 function TestOpenMPT(const MusicFile: string): Boolean;
 function TestXMP(const MusicFile: string): Boolean;
+function TestASAP(const MusicFile: string): Boolean;
 
 implementation
 
@@ -47,15 +48,18 @@ var
   tmpExt: String;
 begin
   Result := ptUnknown;
-
   if not FileExists(AFileName) then Exit;
-
+  Exit(ptASAP);
   try
     // Читаем первые 20 байт для базовой проверки
     Header := ReadFileHeader(AFileName, 0, 20);
     if Length(Header) < 20 then Exit;
 
     tmpExt := LowerCase(ExtractFileExt(AFileName));
+
+    // Проверка ASAP форматов (Atari 8-bit)
+    if TestASAP(AFileName) then
+      Exit(ptASAP);
 
     // Commodore Amiga HivelyTracker audio module .hvl
     if (Header[0] = $48) and (Header[1] = $56) and
@@ -69,9 +73,19 @@ begin
        (Header[2] = $58) and (Header[3] = $01) then
       Exit(ptHively);
 
+    // Проверка StSound
+    if (Header[2] = $2D) and (Header[3] = $6C) and
+       (Header[4] = $68) and (Header[5] = $35) and
+       (Header[6] = $2D) then
+       begin
+         // Проверка по расширениям
+         if (tmpExt = '.ym') or (tmpExt = '.ymf') or (tmpExt = '.ymz') then
+         Exit(ptStSound);
+       end;
+
     // Проверка ZX Spectrum модулей через ZXTune
     if TestZxTune(AFileName) then
-      Exit(ptZxTune);
+     Exit(ptZxTune);
 
     // Проверка модульных форматов через XMP
     if TestXMP(AFileName) then
@@ -246,6 +260,66 @@ begin
 
     // Освобождаем данные
     FreeMem(FileData);
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+function TestASAP(const MusicFile: string): Boolean;
+var
+  AsapInstance: PASAP;
+  AsapInfo: PASAPInfo;
+  FileStream: TFileStream;
+  FileData: Pointer;
+  FileSize: Integer;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  // Проверяем, загружена ли библиотека ASAP
+  if not ASAPLoaded then
+    Exit;
+
+  try
+    // Загружаем файл в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FileSize := FileStream.Size;
+      GetMem(FileData, FileSize);
+      FileStream.ReadBuffer(FileData^, FileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Создаем экземпляр ASAP
+    AsapInstance := ASAP_New;
+    if AsapInstance = nil then
+    begin
+      FreeMem(FileData);
+      Exit;
+    end;
+
+    try
+      // Пытаемся загрузить модуль
+      if ASAP_Load(AsapInstance, PChar(MusicFile), FileData, FileSize) then
+      begin
+        // Получаем информацию о модуле
+        AsapInfo := ASAP_GetInfo(AsapInstance);
+        if AsapInfo <> nil then
+        begin
+          Result := True; // Модуль успешно распознан
+          ASAPInfo_Delete(AsapInfo);
+        end;
+      end;
+    finally
+      // Освобождаем ресурсы ASAP
+      ASAP_Delete(AsapInstance);
+      FreeMem(FileData);
+    end;
 
   except
     on E: Exception do

@@ -1,0 +1,822 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="project1.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="15"/>
+        <CursorPos Y="27"/>
+        <UsageCount Value="164"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="unit1.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="5"/>
+        <CursorPos X="51" Y="9"/>
+        <UsageCount Value="164"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <UnitName Value="rAudioPlayer"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="31" Y="8"/>
+        <UsageCount Value="86"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/raudio.pas"/>
+        <UnitName Value="rAudio"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="16"/>
+        <CursorPos X="33" Y="27"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+        <UnitName Value="rDefaultAudioPlayer"/>
+        <EditorIndex Value="3"/>
+        <CursorPos X="31" Y="8"/>
+        <UsageCount Value="53"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/raudioplayerintf.pas"/>
+        <UnitName Value="rAudioPlayerIntf"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="8"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/raudiointf.pas"/>
+        <UnitName Value="rAudioIntf"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="52"/>
+        <UsageCount Value="49"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/players/rdefaultaudioplayer.pas"/>
+        <UnitName Value="rDefaultAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="115"/>
+        <CursorPos X="60" Y="133"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/raudiofiledetector.pas"/>
+        <UnitName Value="rAudioFileDetector"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="174"/>
+        <CursorPos X="46" Y="242"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libraudio.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+        <CursorPos X="2" Y="21"/>
+        <UsageCount Value="47"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.0.0/lcl/stdctrls.pp"/>
+        <UnitName Value="StdCtrls"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1318"/>
+        <CursorPos X="21" Y="1322"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.0.0/lcl/interfaces/gtk2/gtk2widgetset.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2530"/>
+        <CursorPos Y="2540"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../ray4laz/source/raylib.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="367"/>
+        <CursorPos X="29" Y="362"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/bindings/libfc14audiodecoder.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="87"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libayfly.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="115"/>
+        <CursorPos X="11" Y="134"/>
+        <UsageCount Value="13"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/bindings/binding.libhvl.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/raudiofiledetector.pas"/>
+        <UnitName Value="rAudioFileDetector"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="59"/>
+        <CursorPos X="20" Y="70"/>
+        <UsageCount Value="54"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rayflyaudioplayer.pas"/>
+        <UnitName Value="rAyFlyAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="33" Y="14"/>
+        <UsageCount Value="18"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/Lamer Pinky - Black Sunshine (2014) (DiHalt 2014, 4).p"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="34" Y="16"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/Specman - Melancholy (1997).pt2"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/speccy_detect.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="25" Y="84"/>
+        <UsageCount Value="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/players/rhivelyaudioplayer.pas"/>
+        <UnitName Value="rHivelyAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="241"/>
+        <CursorPos X="45" Y="256"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rhivelyaudioplayer.pas"/>
+        <UnitName Value="rHivelyAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="236"/>
+        <CursorPos X="25" Y="241"/>
+        <UsageCount Value="28"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/bindings/libhvl.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libhvl.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="229"/>
+        <CursorPos X="45" Y="244"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/rtl/unix/aliasctp.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="32"/>
+        <CursorPos X="3" Y="45"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/rtl/unix/ctypes.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="37"/>
+        <CursorPos X="36" Y="50"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libzxtune.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="133"/>
+        <CursorPos X="3" Y="156"/>
+        <UsageCount Value="48"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rzxtuneaudioplayer.pas"/>
+        <UnitName Value="rZxTuneAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="247"/>
+        <CursorPos X="25" Y="251"/>
+        <UsageCount Value="60"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/players/rxmpaudioplayer.pas"/>
+        <UnitName Value="rXmpAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="117"/>
+        <CursorPos X="11" Y="127"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/players/rfcaudioplayer.pas"/>
+        <UnitName Value="rFcAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="342"/>
+        <CursorPos X="36" Y="360"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/BZRPlayer-main/src/plugins/plugin_zxtune/dist/zxtune-r4310/apps/libzxtune/zxtune.h"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="17" Y="67"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/BZRPlayer-main/src/plugins/plugin_zxtune/build/_deps/zxtune_src-src/apps/libzxtune/src/zxtune.cpp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="417"/>
+        <CursorPos X="48" Y="432"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/BZRPlayer-main/src/plugins/plugin_zxtune/patches/zxtune.h.patch"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="13"/>
+        <CursorPos X="107" Y="36"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/zxtune-master/apps/libzxtune/zxtune.h"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="53"/>
+        <CursorPos X="19" Y="67"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/zxtune-master/apps/libzxtune/src/zxtune.cpp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="226"/>
+        <CursorPos X="58" Y="234"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/BZRPlayer-main/src/plugins/plugin_zxtune/dist/zxtune-r4310/apps/zxtune123/text/messages.txt"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="438"/>
+        <CursorPos X="54" Y="406"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/BZRPlayer-main/src/app/info.h"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="321"/>
+        <CursorPos X="9" Y="331"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/build/_deps/zxtune-r4310/apps/zxtune-android/zxtune/src/main/java/app/zxtune/RingtoneService.java"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="45"/>
+        <CursorPos X="53" Y="45"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/src/plugins/plugin_zxtune/src/zxtune-r4310/samples/playlists/xspf/sample_ver1.xspf"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="103"/>
+        <CursorPos X="38" Y="120"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/build/_deps/zxtune-r4310/apps/zxtune123/dist/zxtune.conf"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="25" Y="24"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/build/_deps/zxtune-r4310/apps/zxtune-android/zxtune/src/main/java/app/zxtune/playback/service/SeekableSamplesSource.java"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="31"/>
+        <CursorPos X="60" Y="6"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/src/plugins/plugin_zxtune/src/zxtune-r4310/apps/zxtune123/text/cmd_keys_local.txt"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="28" Y="13"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/build/_deps/zxtune-r4310/apps/zxtune123/text/cmdline.txt"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="17"/>
+        <CursorPos X="18" Y="17"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/src/plugins/plugin_zxtune/src/zxtune-r4310/src/sound/backends/alsa_backend.cpp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="582"/>
+        <CursorPos X="81" Y="600"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/src/plugins/plugin_zxtune/src/zxtune-r4310/src/devices/test/aycli/main.cpp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="303"/>
+        <CursorPos X="57" Y="301"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../NewBuild/src/plugins/plugin_zxtune/src/zxtune-r4310/apps/changelog.txt"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1306"/>
+        <CursorPos X="57" Y="1330"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/.ptmp73F239/YmEngine-SDL/Src/CYmEngine.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1929"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/.ptmp73F239/YmEngine-SDL/Src/CYmPlayer.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+        <CursorPos X="57" Y="14"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../.cache/.fr-19F7A3/AYLoader.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="36"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../.cache/.fr-V2S1A3/unit1.pas"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Папка 2/bindings/binding.libraudio.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="260"/>
+        <CursorPos X="50" Y="271"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Папка 2/play_hively_racb.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16" Y="41"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../zxTunePascal/binding/libzxtune.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="135"/>
+        <CursorPos X="32" Y="102"/>
+        <UsageCount Value="2"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/rtl/objpas/math.pp"/>
+        <UnitName Value="Math"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="173"/>
+        <CursorPos X="37" Y="173"/>
+        <UsageCount Value="22"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/Karbofos.p"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="137"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/C-jeff.p"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="21" Y="15"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/Ch41ns4w.p"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/Mic.p"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="211"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/Mmcm.p"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="30" Y="5"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/nikhotms.p"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="19" Y="9"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/Mch.p"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="64"/>
+        <CursorPos X="22" Y="175"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/KUVO.p"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7"/>
+        <CursorPos X="3" Y="28"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../extractor/extracted_files/ZX.p"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../zxTunePascal/zxtune-r4310/libzxtune/zxtune.h"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="69"/>
+        <CursorPos X="34" Y="80"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../zxTunePascal/examples/ZxPlay.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="158"/>
+        <CursorPos X="26" Y="151"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../zxTunePascal/zxtune-r4310/src/module/players/duration.h"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="4"/>
+        <CursorPos X="17" Y="25"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../zxTunePascal/zxtune-r4310/src/module/players/aym/ayemul.cpp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="865"/>
+        <CursorPos X="80" Y="875"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../.cache/.fr-1IP3C3/unit1.pas"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="17" Y="17"/>
+        <UsageCount Value="4"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../.cache/.fr-D77NC3/unit1.pas"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="32"/>
+        <CursorPos X="45" Y="43"/>
+        <UsageCount Value="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../unit1.pas"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="191"/>
+        <CursorPos X="78" Y="172"/>
+        <UsageCount Value="18"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Open MPT Library/src/binding.libopenmpt.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="905"/>
+        <CursorPos X="28" Y="1406"/>
+        <UsageCount Value="4"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/extra/raudioextra.pas"/>
+        <UnitName Value="raudioExtra"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16" Y="10"/>
+        <UsageCount Value="13"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/raudio.pas"/>
+        <UnitName Value="rAudio"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="3"/>
+        <UsageCount Value="46"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.0.0/lcl/interfaces/gtk2/gtk2memostrings.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="57"/>
+        <CursorPos Y="72"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.0.0/lcl/interfaces/gtk2/gtk2lclintf.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1211"/>
+        <CursorPos Y="1211"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../fftw_s.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="112"/>
+        <CursorPos X="2" Y="150"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/fpcsrc/3.2.2/packages/fftw/src/fftw_s.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="94"/>
+        <CursorPos X="9" Y="39"/>
+        <UsageCount Value="4"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Open MPT Library/src/spectrum_vis.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="41"/>
+        <CursorPos X="28" Y="57"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Open MPT Library/src/OpenMpt.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="158"/>
+        <CursorPos X="28" Y="200"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/fftw.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="95"/>
+        <CursorPos X="47" Y="106"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/CommonTypes.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="17"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/spectrum_vis.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="spectrum_vis.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="46"/>
+        <CursorPos X="28" Y="64"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Cross.Codebot/examples/torment/torment.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../Cross.Codebot/examples/torment/downloads.pas"/>
+        <UnitName Value="Downloads"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="331"/>
+        <CursorPos X="38" Y="469"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/ropenmptaudioplayer.pas"/>
+        <UnitName Value="rOpenMptAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="157"/>
+        <CursorPos X="28" Y="180"/>
+        <UsageCount Value="25"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libopenmpt.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="17"/>
+        <CursorPos Y="29"/>
+        <UsageCount Value="17"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libxmp.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="8" Y="9"/>
+        <UsageCount Value="25"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/uos_libxmp.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="292"/>
+        <CursorPos X="52" Y="299"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rxmpaudioplayer.pas"/>
+        <UnitName Value="rXmpAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="205"/>
+        <CursorPos X="25" Y="211"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../rAudio_old/src/bindings/libxmp.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="277"/>
+        <CursorPos X="79" Y="382"/>
+        <UsageCount Value="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/project-stsound-raylib/bindings/binding.libstsoundlibrary.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="25" Y="13"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/libstsoundlibrary.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="79"/>
+        <CursorPos X="61" Y="97"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/project-stsound-raylib/ym_player_raylib.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="82"/>
+        <CursorPos X="49" Y="113"/>
+        <UsageCount Value="15"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libstsoundlibrary.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="155"/>
+        <CursorPos X="3" Y="106"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rstsoundaudioplayer.pas"/>
+        <UnitName Value="rStSoundAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="21" Y="275"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/asapstatic.pas"/>
+        <UnitName Value="ASAPStatic"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <UnitName Value="rAsapAudioPlayer"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="46" Y="8"/>
+        <UsageCount Value="18"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../../Загрузки/Mad-Assembler-2.1.6/mads.pas"/>
+        <UnitName Value="MADS"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="16077"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.2.0/lcl/include/control.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3107"/>
+        <CursorPos X="10" Y="3129"/>
+        <UsageCount Value="16"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libasapstatic.pas"/>
+        <UnitName Value="libAsapStatic"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="73"/>
+        <CursorPos X="19" Y="101"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="33" Y="13"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/players/bandanalyzer.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="8"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/share/lazarus/4.2.0/lcl/interfaces/gtk2/gtk2widgetset.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2525"/>
+        <CursorPos X="32" Y="2546"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../src/bindings/libraudio_static.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="24" Y="142"/>
+        <UsageCount Value="10"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="17">
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="8" Column="39" TopLine="4"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="292" Column="4"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="16" Column="12" TopLine="4"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+        <Caret Line="141" Column="34" TopLine="133"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="8" Column="38"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+        <Caret Line="8" Column="38"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+        <Caret Line="15" Column="26" TopLine="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+        <Caret Line="141" TopLine="129"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="8" Column="38"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="16" Column="11" TopLine="2"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="9" Column="51" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="112" Column="2"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="27"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="27" TopLine="15"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="15" Column="52" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="27" TopLine="15"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/raudioplayer.pas"/>
+        <Caret Line="8" Column="31"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

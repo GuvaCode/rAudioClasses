@@ -378,29 +378,39 @@ begin
     FOnError(Self, Msg);
 end;
 
+
+
+
 procedure TZxTuneAudioPlayer.InternalStop(ClearTune: Boolean);
 begin
   FPositionLock.Enter;
   try
-    // Проверяем, является ли этот плеер текущим и активным
     if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+    if FCurrentPlayer = Self then
     begin
       StopAudioStream(FStream);
       FCurrentPlayer := nil;
-
-      if ClearModule then
-        FreeModuleData;
-
-      FIsPaused := False;
-      FTrackEndTriggered := False;
-
-      if Assigned(FOnStop) then
-        FOnStop(Self, FCurrentTrack);
     end;
+
+    if ClearTune then
+      FreeModuleData;
+
+    FIsPaused := False;
+    FTrackEndTriggered := False;
+
+    if Assigned(FOnStop) then
+      FOnStop(Self, FCurrentTrack);
+    end;///
   finally
     FPositionLock.Leave;
   end;
 end;
+
+
+
+
+
 
 procedure TZxTuneAudioPlayer.Play(const MusicFile: String; Track: Integer);
 var   Success: Boolean;

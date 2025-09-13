@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Lazarus Version="4.0"/>
-  <Compiler Value="/usr/bin/fpc" Date="1625802185"/>
-  <Params Value="-MObjFPC -Scghi -Cg -O1 -g -gl -l -vewnhibq &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/&apos; &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/bindings&apos; &apos;-Fu/home/vadim/Рабочий стол/rAudioClass/src/players&apos; -Fu/usr/share/lazarus/4.0.0/packager/units/x86_64-linux &apos;-FU/home/vadim/Рабочий стол/rAudioClass/src/lib/x86_64-linux/&apos; raudio.pas"/>
+  <Lazarus Version="4.99"/>
+  <Compiler Value="/home/vadim/fpcupdeluxe/fpc/bin/x86_64-linux/fpc.sh" Date="1757671674"/>
+  <Params Value="-MObjFPC -Scghi -Cg -O1 -g -gl -l -vewnhibq -Fu/home/vadim/Проекты/rAudioClasses/src/ -Fu/home/vadim/Проекты/rAudioClasses/src/bindings -Fu/home/vadim/Проекты/rAudioClasses/src/players -Fu/home/vadim/fpcupdeluxe/lazarus/packager/units/x86_64-linux -FU/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-linux/ raudio.pas"/>
 </CONFIG>

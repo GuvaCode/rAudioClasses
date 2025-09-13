@@ -29,20 +29,8 @@
         <UnitName Value="rDefaultAudioPlayer"/>
       </Item>
       <Item>
-        <Filename Value="players/rhivelyaudioplayer.pas"/>
-        <UnitName Value="rHivelyAudioPlayer"/>
-      </Item>
-      <Item>
-        <Filename Value="players/rzxtuneaudioplayer.pas"/>
-        <UnitName Value="rZxTuneAudioPlayer"/>
-      </Item>
-      <Item>
-        <Filename Value="players/ropenmptaudioplayer.pas"/>
-        <UnitName Value="ropenmptaudioplayer"/>
-      </Item>
-      <Item>
-        <Filename Value="bindings/libraudio.pas"/>
-        <UnitName Value="libraudio"/>
+        <Filename Value="players/rasapaudioplayer.pas"/>
+        <UnitName Value="rAsapAudioPlayer"/>
       </Item>
     </Files>
     <RequiredPkgs>
@@ -51,6 +39,7 @@
       </Item>
     </RequiredPkgs>
     <UsageOptions>
+      <LibraryPath Value="static_libs/$(TargetCPU)-$(TargetOS)"/>
       <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>

@@ -291,5 +291,8 @@ end;
 
 
 initialization
- // LoadLib(FindLibName(library_name));
+
+finalization
+ // if library_handle <> NilHandle then
+  //  UnloadLibrary(library_handle);
 end.
