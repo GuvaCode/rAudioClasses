@@ -14,8 +14,14 @@ type
   private
     FStream: TAudioStream;
     FFilename: string;
+
+  ///  FFileData: array of Byte; // binary data song buffer
+  ///  FFileSize: Integer;
+
     FFileData: Pointer;
     FFileSize: NativeUInt;
+
+
     FAsap: PASAP;
     FAsapInfo: PASAPInfo;
     FIsPaused: Boolean;
@@ -155,6 +161,61 @@ begin
   FPlayers.Add(IntToStr(PtrInt(Self)), Self);
   SetAudioStreamCallback(FStream, @AudioCallback);
 end;
+{
+procedure TAsapAudioPlayer.LoadModuleFile(const MusicFile: string);
+var
+  MemoryStream: TMemoryStream;
+begin
+  FreeModuleData;
+
+  try
+    // Загрузка файла в память (аналогично примеру)
+    MemoryStream := TMemoryStream.Create;
+    try
+      MemoryStream.LoadFromFile(MusicFile);
+      FFileSize := MemoryStream.Size;
+
+      // Выделяем память для динамического массива
+      SetLength(FFileData, FFileSize);
+
+      // Копируем данные из MemoryStream в массив
+      if FFileSize > 0 then
+        MemoryStream.ReadBuffer(FFileData[0], FFileSize);
+    finally
+      MemoryStream.Free;
+    end;
+
+    // Инициализация ASAP
+    FAsap := ASAP_New();
+    if FAsap = nil then
+      raise Exception.Create('Failed to create ASAP instance');
+
+    // Загрузка модуля (используем данные из массива)
+    if not ASAP_Load(FAsap, PChar(MusicFile), @FFileData[0], FFileSize) then
+      raise Exception.Create('Failed to load ASAP module');
+
+    // Получение информации о модуле
+    FAsapInfo := ASAP_GetInfo(FAsap);
+    if FAsapInfo = nil then
+      raise Exception.Create('Failed to get ASAP module info');
+
+    // Установка частоты дискретизации
+    ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
+
+    // Установка режима PAL/NTSC (как в примере)
+    ASAPInfo_SetNtsc(FAsapInfo, false);
+
+    // Воспроизведение выбранного трека
+    if not ASAP_PlaySong(FAsap, FCurrentTrack, -1) then
+      raise Exception.Create('Failed to play ASAP song');
+
+    FFilename := MusicFile;
+  except
+    FreeModuleData;
+    raise;
+  end;
+end;
+ }
 
 procedure TAsapAudioPlayer.LoadModuleFile(const MusicFile: string);
 var
@@ -173,27 +234,27 @@ begin
     end;
 
     // Инициализация ASAP
-    FAsap := ASAP_New;
+    FAsap := ASAP_New();
     if FAsap = nil then
       raise Exception.Create('Failed to create ASAP instance');
 
-   //  Загрузка модуля
-   // Загрузка модуля - ИСПРАВЛЕНО
-   if not ASAP_Load(FAsap, PAnsiChar(AnsiString(MusicFile)), FFileData, FFileSize) then
-     raise Exception.Create('Failed to load ASAP module');
+    // Загрузка модуля
+    if not ASAP_Load(FAsap, PChar(MusicFile), FFileData, FFileSize) then
+      raise Exception.Create('Failed to load ASAP module');
 
     // Получение информации о модуле
-   // FAsapInfo := ASAP_GetInfo(FAsap);
-   // if FAsapInfo = nil then
-   //   raise Exception.Create('Failed to get ASAP module info');
+    FAsapInfo := ASAP_GetInfo(FAsap);
+    if FAsapInfo = nil then
+      raise Exception.Create('Failed to get ASAP module info');
 
-   // ASAPInfo_SetNtsc(FAsap,false);  // PAL/NTSC
-        // Установка частоты дискретизации
-//    ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
+   ASAPInfo_SetNtsc(FAsapInfo, FAsapInfo^.ntsc);
+
+   // Установка частоты дискретизации
+    ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
 
     // Воспроизведение выбранного трека
-  //  if not ASAP_PlaySong(FAsap, FCurrentTrack, -1) then
-  //    raise Exception.Create('Failed to play ASAP song');
+    if not ASAP_PlaySong(FAsap, FCurrentTrack, -1) then
+      raise Exception.Create('Failed to play ASAP song');
 
     FFilename := MusicFile;
   except
@@ -206,7 +267,7 @@ procedure TAsapAudioPlayer.FreeModuleData;
 begin
   if FAsapInfo <> nil then
   begin
-   // ASAPInfo_Delete(FAsapInfo);
+  //  ASAPInfo_Delete(FAsapInfo);
     FAsapInfo := nil;
   end;
 
@@ -242,15 +303,15 @@ var
   SamplesRendered: Integer;
 begin
   if FCurrentPlayer = nil then Exit;
- {
+
   with FCurrentPlayer do
   begin
     FPositionLock.Enter;
     try
       if (FAsap = nil) or FIsPaused then
       begin
-       // FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
-       // Exit;
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
       end;
 
       // Рендерим звук в буфер
@@ -260,12 +321,6 @@ begin
         frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8) ,
         ASAPSampleFormat_S16_L_E
       );
-
-
- //     NumSmp := BufSize div (NumChan * (BitsPerSample div 16));
-//      Gensmp := ASAP_Generate(asap_instance, @Form1.buffers[bufferIndex][0], NumSmp,ASAPSampleFormat.ASAPSampleFormat_S16_L_E) div 2  ;  // _U8
-      ASAPInfo_SetNtsc(FAsap, false);
-
 
       // TTF анализ
       AnalyzeAudioBuffer(bufferData, frames);
@@ -291,7 +346,7 @@ begin
       if FTrackEndTriggered then
         InternalStop(True);
     end;
-  end;   }
+  end;
 end;
 
 procedure TAsapAudioPlayer.CheckError(Condition: Boolean; const Msg: string);

@@ -49,7 +49,7 @@ var
 begin
   Result := ptUnknown;
   if not FileExists(AFileName) then Exit;
-  Exit(ptASAP);
+
   try
     // Читаем первые 20 байт для базовой проверки
     Header := ReadFileHeader(AFileName, 0, 20);
@@ -296,7 +296,7 @@ begin
     end;
 
     // Создаем экземпляр ASAP
-    AsapInstance := ASAP_New;
+    AsapInstance := ASAP_New();
     if AsapInstance = nil then
     begin
       FreeMem(FileData);

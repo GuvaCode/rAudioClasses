@@ -7,10 +7,10 @@
       <Unit>
         <Filename Value="project1.lpr"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="2"/>
         <CursorPos X="12" Y="16"/>
-        <UsageCount Value="162"/>
+        <UsageCount Value="165"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -23,13 +23,15 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="5"/>
         <CursorPos X="32" Y="8"/>
-        <UsageCount Value="162"/>
+        <UsageCount Value="165"/>
       </Unit>
       <Unit>
         <Filename Value="../src/raudioplayer.pas"/>
         <UnitName Value="rAudioPlayer"/>
-        <CursorPos X="38" Y="8"/>
-        <UsageCount Value="86"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="282"/>
+        <CursorPos X="3" Y="284"/>
+        <UsageCount Value="88"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -43,10 +45,8 @@
       <Unit>
         <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
         <UnitName Value="rDefaultAudioPlayer"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="117"/>
-        <CursorPos Y="141"/>
-        <UsageCount Value="53"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="54"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -81,10 +81,10 @@
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libraudio.pas"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="10"/>
-        <CursorPos X="2" Y="21"/>
-        <UsageCount Value="47"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="14"/>
+        <CursorPos X="3" Y="26"/>
+        <UsageCount Value="49"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -130,10 +130,10 @@
       <Unit>
         <Filename Value="../src/raudiofiledetector.pas"/>
         <UnitName Value="rAudioFileDetector"/>
-        <EditorIndex Value="6"/>
-        <TopLine Value="304"/>
-        <CursorPos X="7" Y="328"/>
-        <UsageCount Value="54"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="303"/>
+        <CursorPos X="10" Y="315"/>
+        <UsageCount Value="56"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -169,7 +169,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="241"/>
         <CursorPos X="45" Y="256"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="../src/players/rhivelyaudioplayer.pas"/>
@@ -288,7 +288,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="321"/>
         <CursorPos X="9" Y="331"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="C_2B_2B"/>
       </Unit>
       <Unit>
@@ -350,7 +350,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="303"/>
         <CursorPos X="57" Y="301"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="C_2B_2B"/>
       </Unit>
       <Unit>
@@ -358,7 +358,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1306"/>
         <CursorPos X="57" Y="1330"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Text"/>
       </Unit>
       <Unit>
@@ -378,26 +378,26 @@
         <Filename Value="../../../.cache/.fr-19F7A3/AYLoader.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="36"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="../../../.cache/.fr-V2S1A3/unit1.pas"/>
         <UnitName Value="Unit1"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="../../Папка 2/bindings/binding.libraudio.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="260"/>
         <CursorPos X="50" Y="271"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="../../Папка 2/play_hively_racb.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="16" Y="41"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="../../zxTunePascal/binding/libzxtune.pas"/>
@@ -548,9 +548,9 @@
       <Unit>
         <Filename Value="../src/raudio.pas"/>
         <UnitName Value="rAudio"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="7"/>
         <CursorPos X="3" Y="3"/>
-        <UsageCount Value="46"/>
+        <UsageCount Value="48"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -636,11 +636,10 @@
       <Unit>
         <Filename Value="../src/players/ropenmptaudioplayer.pas"/>
         <UnitName Value="rOpenMptAudioPlayer"/>
-        <EditorIndex Value="7"/>
-        <TopLine Value="115"/>
-        <CursorPos X="48" Y="180"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="166"/>
+        <CursorPos X="47" Y="176"/>
         <UsageCount Value="25"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libopenmpt.pas"/>
@@ -651,10 +650,9 @@
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libxmp.pas"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="8" Y="9"/>
         <UsageCount Value="25"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/uos_libxmp.pas"/>
@@ -722,9 +720,9 @@
       <Unit>
         <Filename Value="../src/players/rasapaudioplayer.pas"/>
         <UnitName Value="rAsapAudioPlayer"/>
-        <EditorIndex Value="9"/>
-        <CursorPos X="46" Y="8"/>
-        <UsageCount Value="18"/>
+        <EditorIndex Value="6"/>
+        <CursorPos Y="21"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -736,11 +734,10 @@
       </Unit>
       <Unit>
         <Filename Value="/usr/share/lazarus/4.2.0/lcl/include/control.inc"/>
-        <EditorIndex Value="11"/>
-        <TopLine Value="3079"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3106"/>
         <CursorPos X="10" Y="3129"/>
         <UsageCount Value="16"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libasapstatic.pas"/>
@@ -752,17 +749,17 @@
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libasap.pas"/>
-        <EditorIndex Value="1"/>
-        <CursorPos X="59" Y="13"/>
-        <UsageCount Value="12"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="118"/>
+        <CursorPos X="18" Y="130"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../src/players/bandanalyzer.inc"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="3" Y="8"/>
         <UsageCount Value="14"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/share/lazarus/4.2.0/lcl/interfaces/gtk2/gtk2widgetset.inc"/>
@@ -773,134 +770,130 @@
       </Unit>
       <Unit>
         <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="79"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="28"/>
         <CursorPos X="26" Y="91"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="../src/players/rasapaudioplayer.pas"/>
-        <Caret Line="187" Column="6" TopLine="172"/>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="24" Column="77" TopLine="9"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="79" Column="7" TopLine="64"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="34" Column="7" TopLine="19"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="36" Column="3" TopLine="33"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="161" TopLine="149"/>
       </Position>
       <Position>
         <Filename Value="../src/players/rasapaudioplayer.pas"/>
-        <Caret Line="293" Column="11" TopLine="281"/>
+        <Caret Line="173" Column="7" TopLine="155"/>
       </Position>
       <Position>
         <Filename Value="../src/players/rasapaudioplayer.pas"/>
-        <Caret Line="545" Column="31" TopLine="329"/>
+        <Caret Line="19" Column="24" TopLine="5"/>
       </Position>
       <Position>
         <Filename Value="../src/players/rasapaudioplayer.pas"/>
-        <Caret Line="8" Column="46"/>
+        <Caret Line="185" Column="24" TopLine="174"/>
       </Position>
       <Position>
-        <Filename Value="../src/raudioplayer.pas"/>
-        <Caret Line="8" Column="39" TopLine="4"/>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="202" Column="27" TopLine="190"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="228" Column="46" TopLine="216"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="202" Column="31" TopLine="190"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="231" Column="5" TopLine="213"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="273" Column="31" TopLine="261"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="273" Column="35" TopLine="262"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="54" Column="29" TopLine="46"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="263" Column="5" TopLine="240"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="237" Column="24" TopLine="226"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="269" Column="4" TopLine="261"/>
       </Position>
       <Position>
         <Filename Value="../src/raudiofiledetector.pas"/>
-        <Caret Line="13" Column="29" TopLine="7"/>
+        <Caret Line="328" Column="6" TopLine="307"/>
       </Position>
       <Position>
         <Filename Value="../src/raudiofiledetector.pas"/>
-        <Caret Line="328" Column="7" TopLine="306"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/raudioplayer.pas"/>
-        <Caret Line="130" Column="4" TopLine="164"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/raudioplayer.pas"/>
-        <Caret Line="292" Column="4"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/raudioplayer.pas"/>
-        <Caret Line="117" Column="13" TopLine="372"/>
-      </Position>
-      <Position>
-        <Filename Value="project1.lpr"/>
-        <Caret Line="16" Column="12" TopLine="4"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
-        <Caret Line="141" Column="34" TopLine="133"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/raudioplayer.pas"/>
-        <Caret Line="8" Column="38"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
-        <Caret Line="8" Column="38"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
-        <Caret Line="15" Column="26" TopLine="3"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="27" Column="4" TopLine="16"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="37" Column="14" TopLine="25"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="43" Column="14" TopLine="31"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="52" TopLine="40"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="12" Column="4" TopLine="2"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="110" Column="37" TopLine="96"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="64" Column="43" TopLine="52"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="52" TopLine="40"/>
-      </Position>
-      <Position>
-        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
-        <Caret Line="141" TopLine="129"/>
+        <Caret Line="299" Column="31" TopLine="288"/>
       </Position>
       <Position>
         <Filename Value="../src/raudiofiledetector.pas"/>
-        <Caret Line="328" Column="7" TopLine="304"/>
+        <Caret Line="315" Column="10" TopLine="303"/>
       </Position>
       <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="49" Column="14" TopLine="28"/>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="269" Column="3" TopLine="261"/>
       </Position>
       <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="52" TopLine="40"/>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="54" Column="29" TopLine="39"/>
       </Position>
       <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="58" Column="14" TopLine="34"/>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="251" Column="27" TopLine="239"/>
       </Position>
       <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="6" Column="10"/>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="190" Column="15" TopLine="180"/>
       </Position>
       <Position>
-        <Filename Value="../src/bindings/libraudio_static.pas"/>
-        <Caret Line="76" Column="29" TopLine="64"/>
+        <Filename Value="../src/players/rdefaultaudioplayer.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="251" Column="60" TopLine="239"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/bindings/libasap.pas"/>
+        <Caret Line="130" Column="18" TopLine="118"/>
+      </Position>
+      <Position>
+        <Filename Value="../src/players/rasapaudioplayer.pas"/>
+        <Caret Line="253" Column="30" TopLine="240"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -20,15 +20,144 @@ const
   {$ENDIF}
 
 type
-  PASAP = Pointer;
-  PASAPInfo = Pointer;
-  PASAPWriter = Pointer;
+  TPoly9LookupArray = array[0..510] of Byte;
+  TPoly17LookupArray = array[0..16384] of Byte;
+  TSincLookupArray = array[0..1023, 0..31] of SmallInt;
 
+  NmiStatus = (NmiStatus_RESET, NmiStatus_ON_V_BLANK,NmiStatus_WAS_V_BLANK);
+
+  PASAPWriter = ^ASAPWriter;
+  ASAPWriter = record
+       output :PInt16;
+       outputOffset : Integer;
+       outputEnd: Integer;
+  end;
+
+  ASAPModuleType = (amtUnknown, amtType1, amtType2,ASAPModuleType_SAP_B,
+        ASAPModuleType_SAP_C,
+        ASAPModuleType_SAP_D,
+        ASAPModuleType_SAP_S,
+        ASAPModuleType_CMC,
+        ASAPModuleType_CM3,
+        ASAPModuleType_CMR,
+        ASAPModuleType_CMS,
+        ASAPModuleType_DLT,
+        ASAPModuleType_MPT,
+        ASAPModuleType_RMT,
+        ASAPModuleType_TMC,
+        ASAPModuleType_TM2,
+        ASAPModuleType_FC);
+  //   sample formats
   ASAPSampleFormat = (
-    ASAPSampleFormat_U8 = 0,
-    ASAPSampleFormat_S16_L_E = 1,
-    ASAPSampleFormat_S16_B_E = 2
-  );
+    ASAPSampleFormat_U8,   // Unsigned 8-bit
+    ASAPSampleFormat_S16_L_E, // Signed 16-bit little-endian
+    ASAPSampleFormat_S16_B_E // Signed 16-bit big-endian
+    );
+
+ TPokeyChannel = record
+    Audf: Integer;
+    Audc: Integer;
+    PeriodCycles: Integer;
+    TickCycle: Integer;
+    TimerCycle: Integer;
+    Mute: Integer;
+    Out: Integer;
+    Delta: Integer;
+  end;
+
+  TPokeyChannelArray = array[0..3] of TPokeyChannel;
+
+  TPokey = record
+    Channels: TPokeyChannelArray;
+    Audctl: Integer;
+    Skctl: Integer;
+    Irqst: Integer;
+    Init: Boolean;
+    DivCycles: Integer;
+    ReloadCycles1: Integer;
+    ReloadCycles3: Integer;
+    PolyIndex: Integer;
+    DeltaBufferLength: Integer;
+    DeltaBuffer: PInteger; // Correspond à un pointeur sur int en C c'est sure !!
+    SumDACInputs: Integer;
+    SumDACOutputs: Integer;
+    IIRRate: Integer;
+    IIRAcc: Integer;
+    Trailing: Integer;
+  end;
+
+  PokeyPair = record
+    Poly9Lookup: TPoly9LookupArray;
+    Poly17Lookup: TPoly17LookupArray;
+    ExtraPokeyMask: Integer;
+    BasePokey: TPokey;
+    ExtraPokey: TPokey;
+    SampleRate: Integer;
+    SincLookup: TSincLookupArray;
+    SampleFactor: Integer;
+    SampleOffset: Integer;
+    ReadySamplesStart: Integer;
+    ReadySamplesEnd: Integer;
+  end;
+
+  PASAP = ^ASAP;
+  TCpu6502 = ^Cpu6502;
+  Cpu6502 = record
+    asap:  PASAP;
+    memory: array[0..65535] of Byte;
+    cycle: Integer;
+    pc: Integer;
+    a: Integer;
+    x: Integer;
+    y: Integer;
+    s: Integer;
+    nz: Integer;
+    c: Integer;
+    vdi: Integer;
+  end;
+
+  PASAPInfo = ^ASAPInfo;
+  ASAPInfo = record
+    filename: PChar;
+    author: PChar;
+    title: PChar;
+    date: PChar;
+    channels: Integer;
+    songs: Integer;
+    defaultSong: Integer;
+    durations: array[0..31] of Integer;
+    loops: array[0..31] of Boolean;
+    ntsc: Boolean;
+    mtype_: ASAPModuleType;
+    fastplay: Integer;
+    music: Integer;
+    init: Integer;
+    player: Integer;
+    covoxAddr: Integer;
+    headerLen: Integer;
+    songPos: array[0..31] of Byte;
+  end;
+
+  ASAP = record
+    nextEventCycle: Integer;
+    cpu: TCpu6502;
+    nextScanlineCycle: Integer;
+    nmist: NmiStatus;
+    consol: Integer;
+    covox: array[0..3] of Byte;
+    pokeys: PokeyPair;
+    moduleInfo: ASAPInfo;
+    nextPlayerCycle: Integer;
+    tmcPerFrameCounter: Integer;
+    currentSong: Integer;
+    currentDuration: Integer;
+    blocksPlayed: Integer;
+    silenceCycles: Integer;
+    silenceCyclesCounter: Integer;
+    gtiaOrCovoxPlayedThisFrame: Boolean;
+    currentSampleRate: Integer;
+  end;
+
 
 const
   ASAP_SAMPLE_RATE = 44100;

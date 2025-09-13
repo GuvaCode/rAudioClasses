@@ -5,16 +5,16 @@ unit rAudioFileDetector;
 interface
 
 uses
-  Classes, SysUtils, ctypes;// libzxtune, libopenmpt, libxmp, libasap;
+  Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp, libasap;
 
 type
   TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP);
 
 function DetectAudioFileType(const AFileName: string): TPlayerType;
-{function TestZxTune(const MusicFile: string): Boolean;
+function TestZxTune(const MusicFile: string): Boolean;
 function TestOpenMPT(const MusicFile: string): Boolean;
 function TestXMP(const MusicFile: string): Boolean;
-function TestASAP(const MusicFile: string): Boolean;  }
+function TestASAP(const MusicFile: string): Boolean;
 
 implementation
 
@@ -49,8 +49,8 @@ var
 begin
   Result := ptUnknown;
   if not FileExists(AFileName) then Exit;
-  Exit(ptDefault);
-  {try
+
+  try
     // Читаем первые 20 байт для базовой проверки
     Header := ReadFileHeader(AFileName, 0, 20);
     if Length(Header) < 20 then Exit;
@@ -118,9 +118,9 @@ begin
   except
     on E: Exception do
       Result := ptUnknown;
-  end; }
+  end;
 end;
-{
+
 function TestZxTune(const MusicFile: string): Boolean;
 var
   ZxTuneData: ZXTuneHandle;
@@ -296,7 +296,7 @@ begin
     end;
 
     // Создаем экземпляр ASAP
-    AsapInstance := ASAP_New;
+    AsapInstance := ASAP_New();
     if AsapInstance = nil then
     begin
       FreeMem(FileData);
@@ -312,7 +312,7 @@ begin
         if AsapInfo <> nil then
         begin
           Result := True; // Модуль успешно распознан
-          ASAPInfo_Delete(AsapInfo);
+       //   ASAPInfo_Delete(AsapInfo);
         end;
       end;
     finally
@@ -325,6 +325,6 @@ begin
     on E: Exception do
       Result := False;
   end;
-end; }
+end;
 
 end.

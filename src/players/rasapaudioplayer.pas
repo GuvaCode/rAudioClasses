@@ -5,7 +5,7 @@ unit rAsapAudioPlayer;
 interface
 
 uses
-  Classes, SysUtils, libAsapStatic, libraudio,
+  Classes, SysUtils, libAsap, libraudio,
   rAudioIntf, contnrs, syncobjs, math;
 
 type
@@ -14,8 +14,10 @@ type
   private
     FStream: TAudioStream;
     FFilename: string;
+
     FFileData: Pointer;
     FFileSize: NativeUInt;
+
     FAsap: PASAP;
     FAsapInfo: PASAPInfo;
     FIsPaused: Boolean;
@@ -156,6 +158,7 @@ begin
   SetAudioStreamCallback(FStream, @AudioCallback);
 end;
 
+
 procedure TAsapAudioPlayer.LoadModuleFile(const MusicFile: string);
 var
   FileStream: TFileStream;
@@ -173,7 +176,7 @@ begin
     end;
 
     // Инициализация ASAP
-    FAsap := ASAP_New;
+    FAsap := ASAP_New();
     if FAsap = nil then
       raise Exception.Create('Failed to create ASAP instance');
 
@@ -186,8 +189,9 @@ begin
     if FAsapInfo = nil then
       raise Exception.Create('Failed to get ASAP module info');
 
-   // ASAPInfo_SetNtsc(FAsap,false);  // PAL/NTSC
-        // Установка частоты дискретизации
+   ASAPInfo_SetNtsc(FAsapInfo, FAsapInfo^.ntsc);
+
+   // Установка частоты дискретизации
     ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
 
     // Воспроизведение выбранного трека
@@ -205,7 +209,7 @@ procedure TAsapAudioPlayer.FreeModuleData;
 begin
   if FAsapInfo <> nil then
   begin
-   // ASAPInfo_Delete(FAsapInfo);
+  //  ASAPInfo_Delete(FAsapInfo);
     FAsapInfo := nil;
   end;
 
@@ -248,8 +252,8 @@ begin
     try
       if (FAsap = nil) or FIsPaused then
       begin
-       // FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
-       // Exit;
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
       end;
 
       // Рендерим звук в буфер
@@ -259,12 +263,6 @@ begin
         frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8) ,
         ASAPSampleFormat_S16_L_E
       );
-
-
- //     NumSmp := BufSize div (NumChan * (BitsPerSample div 16));
-//      Gensmp := ASAP_Generate(asap_instance, @Form1.buffers[bufferIndex][0], NumSmp,ASAPSampleFormat.ASAPSampleFormat_S16_L_E) div 2  ;  // _U8
-      ASAPInfo_SetNtsc(FAsap, false);
-
 
       // TTF анализ
       AnalyzeAudioBuffer(bufferData, frames);
