@@ -1,3 +1,0 @@
-/usr/bin/cmake -E rm -f CMakeFiles/StSoundLibrary.dir/objects.a
-/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/StSoundLibrary.dir/objects.a @CMakeFiles/StSoundLibrary.dir/objects1.rsp
-/usr/bin/x86_64-w64-mingw32-g++  -Wall -Wextra -O3 -DNDEBUG -O3 -static-libgcc -static-libstdc++ -static -shared -o /home/vadim/Проекты/rAudioClasses/plugins_src/StSound/StSoundLibrary/Release/libStSoundLibrary.dll -Wl,--out-implib,/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/StSoundLibrary/Release/libStSoundLibrary.dll.a -Wl,--major-image-version,1,--minor-image-version,0 -Wl,--whole-archive CMakeFiles/StSoundLibrary.dir/objects.a -Wl,--no-whole-archive @CMakeFiles/StSoundLibrary.dir/linkLibs.rsp

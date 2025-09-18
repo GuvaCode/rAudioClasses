@@ -1,3 +1,0 @@
-/home/vadim/Проекты/rAudioClasses/plugins_src/zxTune/build-windows/CMakeFiles/zxtune.dir
-/home/vadim/Проекты/rAudioClasses/plugins_src/zxTune/build-windows/CMakeFiles/edit_cache.dir
-/home/vadim/Проекты/rAudioClasses/plugins_src/zxTune/build-windows/CMakeFiles/rebuild_cache.dir
