@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC -shared -Wl,-soname,libraudio.so -o libraudio.so CMakeFiles/raudio.dir/home/vadim/Проекты/rAudioClasses/plugins_src/raudio/src/raudio.c.o  -lm -lpthread 

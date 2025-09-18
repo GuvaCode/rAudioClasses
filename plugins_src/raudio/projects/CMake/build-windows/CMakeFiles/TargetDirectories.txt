@@ -1,3 +1,0 @@
-/home/vadim/Проекты/rAudioClasses/plugins_src/raudio/projects/CMake/build-windows/CMakeFiles/raudio.dir
-/home/vadim/Проекты/rAudioClasses/plugins_src/raudio/projects/CMake/build-windows/CMakeFiles/edit_cache.dir
-/home/vadim/Проекты/rAudioClasses/plugins_src/raudio/projects/CMake/build-windows/CMakeFiles/rebuild_cache.dir

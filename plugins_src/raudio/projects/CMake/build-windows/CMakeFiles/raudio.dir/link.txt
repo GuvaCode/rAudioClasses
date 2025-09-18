@@ -1,3 +1,0 @@
-/usr/bin/cmake -E rm -f CMakeFiles/raudio.dir/objects.a
-/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/raudio.dir/objects.a @CMakeFiles/raudio.dir/objects1.rsp
-/usr/bin/x86_64-w64-mingw32-gcc -shared -o libraudio.dll -Wl,--out-implib,libraudio.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles/raudio.dir/objects.a -Wl,--no-whole-archive @CMakeFiles/raudio.dir/linkLibs.rsp

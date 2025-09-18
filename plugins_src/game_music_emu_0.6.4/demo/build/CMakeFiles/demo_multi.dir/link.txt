@@ -1,1 +1,0 @@
-/usr/bin/c++ -rdynamic CMakeFiles/demo_multi.dir/Wave_Writer.o CMakeFiles/demo_multi.dir/basics_multi.o -o demo_multi   -L/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/gme  -Wl,-rpath,/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/gme -lgme::gme 
