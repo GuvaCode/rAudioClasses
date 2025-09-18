@@ -1,0 +1,263 @@
+unit libgme;
+
+// libgme 0.6.4 headers for fpc
+
+{$mode objfpc}{$H+}
+{$packrecords c}
+
+interface
+
+uses
+  ctypes;
+
+const
+  {$ifdef linux}
+      library_name = 'libgme.so.0.6.4';
+  {$endif}
+    {$ifdef windows}
+      library_name = 'libgme.dll';
+  {$endif}
+
+const
+  GME_VERSION = $000604;
+
+
+type
+  // Forward declarations
+  Pgme_type_t_ = Pointer;
+  PPgme_type_t_ = ^Pgme_type_t_;
+
+  Pgme_info_t = ^gme_info_t;
+  PPgme_info_t = ^Pgme_info_t;
+
+  Pgme_equalizer_t = ^gme_equalizer_t;
+
+  gme_err_t = PUTF8Char;
+  PMusic_Emu = Pointer;
+  PPMusic_Emu = ^PMusic_Emu;
+
+  (******** Informational ********)
+  _anonymous_type_1 = (
+    gme_info_only = -1);
+  P_anonymous_type_1 = ^_anonymous_type_1;
+
+  gme_info_t = record
+    length: Integer;
+    intro_length: Integer;
+    loop_length: Integer;
+    play_length: Integer;
+    fade_length: Integer;
+    i5: Integer;
+    i6: Integer;
+    i7: Integer;
+    i8: Integer;
+    i9: Integer;
+    i10: Integer;
+    i11: Integer;
+    i12: Integer;
+    i13: Integer;
+    i14: Integer;
+    i15: Integer;
+    system: PUTF8Char;
+    game: PUTF8Char;
+    song: PUTF8Char;
+    author: PUTF8Char;
+    copyright: PUTF8Char;
+    comment: PUTF8Char;
+    dumper: PUTF8Char;
+    s7: PUTF8Char;
+    s8: PUTF8Char;
+    s9: PUTF8Char;
+    s10: PUTF8Char;
+    s11: PUTF8Char;
+    s12: PUTF8Char;
+    s13: PUTF8Char;
+    s14: PUTF8Char;
+    s15: PUTF8Char;
+  end;
+
+  gme_equalizer_t = record
+    treble: Double;
+    bass: Double;
+    d2: Double;
+    d3: Double;
+    d4: Double;
+    d5: Double;
+    d6: Double;
+    d7: Double;
+    d8: Double;
+    d9: Double;
+  end;
+
+  gme_type_t = Pointer;
+  Pgme_type_t = ^gme_type_t;
+
+  gme_reader_t = function(your_data: Pointer; &out: Pointer; count: Integer): gme_err_t; cdecl;
+
+  gme_user_cleanup_t = procedure(user_data: Pointer); cdecl;
+
+var
+(******** Basic operations ********)
+  gme_open_file: function(path: PAnsiChar; &out: PPMusic_Emu; sample_rate: Integer): gme_err_t; cdecl;
+  gme_track_count: function(const p1: PMusic_Emu): Integer; cdecl;
+  gme_start_track: function(p1: PMusic_Emu; index: Integer): gme_err_t; cdecl;
+  gme_play: function(p1: PMusic_Emu; count: Integer; &out: PSmallint): gme_err_t; cdecl;
+  gme_delete: procedure(p1: PMusic_Emu); cdecl;
+(******** Track position/length ********)
+  gme_set_fade: procedure(p1: PMusic_Emu; start_msec: Integer); cdecl;
+(** See gme_set_fade.* @since 0.6.4*)
+  gme_set_fade_msecs: procedure(p1: PMusic_Emu; start_msec: Integer; length_msecs: Integer); cdecl;
+(**
+ * If do_autoload_limit is nonzero, then automatically load track length
+ * metadata (if present) and terminate playback once the track length has been
+ * reached. Otherwise playback will continue for an arbitrary period of time
+ * until a prolonged period of silence is detected.
+ *
+ * Not all individual emulators support this setting.
+ *
+ * By default, playback limits are loaded and applied.
+ *
+ * @since 0.6.3
+ *)
+gme_set_autoload_playback_limit: procedure(p1: PMusic_Emu; do_autoload_limit: Integer); cdecl;
+(** See gme_set_autoload_playback_limit.
+ * (This was actually added in 0.6.3, but wasn't exported because of a typo.)
+ * @since 0.6.4
+ *)
+ gme_autoload_playback_limit: function(const p1: PMusic_Emu): Integer; cdecl;
+ gme_track_ended: function(const p1: PMusic_Emu): Integer; cdecl;
+ gme_tell: function(const p1: PMusic_Emu): Integer; cdecl;
+ gme_tell_samples: function(const p1: PMusic_Emu): Integer; cdecl;
+ gme_seek: function(p1: PMusic_Emu; msec: Integer): gme_err_t; cdecl;
+ gme_seek_samples: function(p1: PMusic_Emu; n: Integer): gme_err_t; cdecl;
+ gme_warning: function(p1: PMusic_Emu): PUTF8Char; cdecl;
+ gme_load_m3u: function(p1: PMusic_Emu; path: PUTF8Char): gme_err_t; cdecl;
+ gme_clear_playlist: procedure(p1: PMusic_Emu); cdecl;
+ gme_track_info: function(const p1: PMusic_Emu; &out: PPgme_info_t; track: Integer): gme_err_t; cdecl;
+ gme_free_info: procedure(p1: Pgme_info_t); cdecl;
+(******** Advanced playback ********)
+gme_set_stereo_depth: procedure(p1: PMusic_Emu; depth: Double); cdecl;
+gme_ignore_silence: procedure(p1: PMusic_Emu; ignore: Integer); cdecl;
+gme_set_tempo: procedure(p1: PMusic_Emu; tempo: Double); cdecl;
+gme_voice_count: function(const p1: PMusic_Emu): Integer; cdecl;
+gme_voice_name: function(const p1: PMusic_Emu; i: Integer): PUTF8Char; cdecl;
+gme_mute_voice: procedure(p1: PMusic_Emu; index: Integer; mute: Integer); cdecl;
+gme_mute_voices: procedure(p1: PMusic_Emu; muting_mask: Integer); cdecl;
+gme_disable_echo: procedure(p1: PMusic_Emu; disable: Integer); cdecl;
+gme_equalizer: procedure(const p1: PMusic_Emu; &out: Pgme_equalizer_t); cdecl;
+gme_set_equalizer: procedure(p1: PMusic_Emu; const eq: Pgme_equalizer_t); cdecl;
+gme_enable_accuracy: procedure(p1: PMusic_Emu; enabled: Integer); cdecl;
+gme_type: function(const p1: PMusic_Emu): gme_type_t; cdecl;
+gme_type_list: function(): Pgme_type_t; cdecl;
+gme_type_system: function(p1: gme_type_t): PUTF8Char; cdecl;
+gme_type_multitrack: function(p1: gme_type_t): Integer; cdecl;
+gme_multi_channel: function(const p1: PMusic_Emu): Integer; cdecl;
+gme_open_data: function(const data: Pointer; size: Longint; &out: PPMusic_Emu; sample_rate: Integer): gme_err_t; cdecl;
+gme_identify_header: function(const header: Pointer): PUTF8Char; cdecl;
+gme_identify_extension: function(path_or_extension: PUTF8Char): gme_type_t; cdecl;
+(**
+ * Get typical file extension for a given music type.  This is not a replacement
+ * for a file content identification library (but see gme_identify_header).
+ *
+ * @since 0.6.3
+ *)
+gme_type_extension: function(music_type: gme_type_t): PUTF8Char; cdecl;
+gme_identify_file: function(path: PUTF8Char; type_out: Pgme_type_t): gme_err_t; cdecl;
+gme_new_emu: function(p1: gme_type_t; sample_rate: Integer): PMusic_Emu; cdecl;
+gme_new_emu_multi_channel: function(p1: gme_type_t; sample_rate: Integer): PMusic_Emu; cdecl;
+gme_load_file: function(p1: PMusic_Emu; path: PUTF8Char): gme_err_t; cdecl;
+gme_load_data: function(p1: PMusic_Emu; const data: Pointer; size: Longint): gme_err_t; cdecl;
+gme_load_tracks: function(me: PMusic_Emu; const data: Pointer; sizes: PLongint; count: Integer): gme_err_t; cdecl;
+gme_fixed_track_count: function(p1: gme_type_t): Integer; cdecl;
+gme_load_custom: function(p1: PMusic_Emu; p2: gme_reader_t; file_size: Longint; your_data: Pointer): gme_err_t; cdecl;
+gme_load_m3u_data: function(p1: PMusic_Emu; const data: Pointer; size: Longint): gme_err_t; cdecl;
+(******** User data ********)
+gme_set_user_data: procedure(p1: PMusic_Emu; new_user_data: Pointer); cdecl;
+gme_user_data: function(const p1: PMusic_Emu): Pointer; cdecl;
+gme_set_user_cleanup: procedure(p1: PMusic_Emu; func: gme_user_cleanup_t); cdecl;
+
+procedure LoadLib(const aLibName: string);
+
+implementation
+
+uses
+  sysutils, dynlibs;
+
+var
+  gme_handle: TLibHandle;
+
+
+procedure LoadLib(const aLibName: string);
+var LibName : string = '';
+begin
+  if FileExists('.' + PathDelim + aLibName)
+   then LibName := '.' + PathDelim + aLibName
+    else
+     if FileExists('lib' + PathDelim + aLibName)
+      then LibName := 'lib' + PathDelim + aLibName;
+
+  if libName = ''
+    then libName := aLibName;
+
+  gme_handle := LoadLibrary(PChar(LibName));
+
+  if gme_handle = 0
+    then raise Exception.Create(Format('Could not load library: %s',[LibName]));
+
+  //******** Basic operations ********/
+  pointer(gme_open_file)                   := GetProcAddress(gme_handle, 'gme_open_file');
+  pointer(gme_track_count)                 := GetProcAddress(gme_handle, 'gme_track_count');
+  pointer(gme_start_track)                 := GetProcAddress(gme_handle, 'gme_start_track');
+  pointer(gme_play)                        := GetProcAddress(gme_handle, 'gme_play');
+  pointer(gme_delete)                      := GetProcAddress(gme_handle, 'gme_delete');
+  //******** Track position/length ********/
+  pointer(gme_set_fade)                    := GetProcAddress(gme_handle, 'gme_set_fade');
+  pointer(gme_set_autoload_playback_limit) := GetProcAddress(gme_handle, 'gme_set_autoload_playback_limit');
+  pointer(gme_autoload_playback_limit)     := GetProcAddress(gme_handle, 'gme_autoload_playback_limit');
+  pointer(gme_track_ended)                 := GetProcAddress(gme_handle, 'gme_track_ended');
+  pointer(gme_tell)                        := GetProcAddress(gme_handle, 'gme_tell');
+  pointer(gme_tell_samples)                := GetProcAddress(gme_handle, 'gme_tell_samples');
+  pointer(gme_seek)                        := GetProcAddress(gme_handle, 'gme_seek');
+  pointer(gme_seek_samples)                := GetProcAddress(gme_handle, 'gme_seek_samples');
+  //******** Informational ********/
+  pointer(gme_warning)                     := GetProcAddress(gme_handle, 'gme_warning');
+  pointer(gme_load_m3u)                    := GetProcAddress(gme_handle, 'gme_load_m3u');
+  pointer(gme_clear_playlist)              := GetProcAddress(gme_handle, 'gme_clear_playlist');
+  pointer(gme_track_info)                  := GetProcAddress(gme_handle, 'gme_track_info');
+  pointer(gme_free_info)                   := GetProcAddress(gme_handle, 'gme_free_info');
+  //******** Advanced playback ********/
+  pointer(gme_set_stereo_depth)            := GetprocAddress(gme_handle, 'gme_set_stereo_depth');
+  pointer(gme_ignore_silence)              := GetprocAddress(gme_handle, 'gme_ignore_silence');
+  pointer(gme_set_tempo)                   := GetprocAddress(gme_handle, 'gme_set_tempo');
+  pointer(gme_voice_count)                 := GetprocAddress(gme_handle, 'gme_voice_count');
+  pointer(gme_voice_name)                  := GetprocAddress(gme_handle, 'gme_voice_name');
+  pointer(gme_mute_voice)                  := GetprocAddress(gme_handle, 'gme_mute_voice');
+  pointer(gme_mute_voices)                 := GetprocAddress(gme_handle, 'gme_mute_voices');
+  pointer(gme_equalizer)                   := GetprocAddress(gme_handle, 'gme_equalizer');
+  pointer(gme_set_equalizer)               := GetprocAddress(gme_handle, 'gme_set_equalizer');
+  pointer(gme_enable_accuracy)             := GetprocAddress(gme_handle, 'gme_enable_accuracy');
+  //******** Game music types ********/
+  pointer(gme_type)                        := GetProcAddress(gme_handle, 'gme_type');
+  pointer(gme_type_list)                   := GetProcAddress(gme_handle, 'gme_type_list');
+  pointer(gme_type_system)                 := GetProcAddress(gme_handle, 'gme_type_system');
+  pointer(gme_type_multitrack)             := GetProcAddress(gme_handle, 'gme_type_multitrack');
+  pointer(gme_multi_channel)               := GetProcAddress(gme_handle, 'gme_multi_channel');
+  //******** Advanced file loading ********/
+  pointer(gme_open_data)                   := GetProcAddress(gme_handle, 'gme_open_data');
+  pointer(gme_identify_header)             := GetProcAddress(gme_handle, 'gme_identify_header');
+  pointer(gme_identify_extension)          := GetProcAddress(gme_handle, 'gme_identify_extension');
+  pointer(gme_type_extension)              := GetProcAddress(gme_handle, 'gme_type_extension');
+  pointer(gme_identify_file)               := GetProcAddress(gme_handle, 'gme_identify_file');
+  pointer(gme_new_emu)                     := GetProcAddress(gme_handle, 'gme_new_emu');
+  pointer(gme_new_emu_multi_channel)       := GetProcAddress(gme_handle, 'gme_new_emu_multi_channel');
+  pointer(gme_load_file)                   := GetProcAddress(gme_handle, 'gme_load_file');
+  pointer(gme_load_data)                   := GetProcAddress(gme_handle, 'gme_load_data');
+  pointer(gme_load_custom)                 := GetProcAddress(gme_handle, 'gme_load_custom');
+  pointer(gme_load_m3u_data)               := GetProcAddress(gme_handle, 'gme_load_m3u_data');
+  //******** User data ********/
+  pointer(gme_set_user_data)               := GetProcAddress(gme_handle, 'gme_set_user_data');
+  pointer(gme_user_data)                   := GetProcAddress(gme_handle, 'gme_user_data');
+  pointer(gme_set_user_cleanup)            := GetProcAddress(gme_handle, 'gme_set_user_cleanup');
+end;
+
+end.

@@ -10,7 +10,7 @@ uses
 
 const
   {$IFDEF MSWINDOWS}
-  DEFAULT_LIB_NAME = 'zxtune.dll';
+  DEFAULT_LIB_NAME = 'libzxtune.dll';
   {$ELSE}
   {$IFDEF DARWIN}
   DEFAULT_LIB_NAME = 'libzxtune.dylib';

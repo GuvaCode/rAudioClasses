@@ -21,8 +21,12 @@ uses
   ctypes;
 
 const
+  {$ifdef linux}
   library_name = 'libStSoundLibrary.so.1.0.0';
-
+  {$endif}
+  {$ifdef windows}
+  library_name = 'libStSoundLibrary.dll';
+  {$endif}
 ///////////////////////////////////////////////////////////////////////////////
 // YmTypes.h
 

@@ -18,6 +18,7 @@ type
     Button3: TButton;
     Button4: TButton;
     Button5: TButton;
+    Button6: TButton;
     Memo1: TMemo;
     OpenDialog1: TOpenDialog;
     PaintBox1: TPaintBox;
@@ -34,6 +35,7 @@ type
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
@@ -41,6 +43,7 @@ type
       var Handled: Boolean);
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
+    procedure TrackBar1Change(Sender: TObject);
   private
 
   public
@@ -166,7 +169,7 @@ begin
   begin
     // Обновляем позицию воспроизведения
     ProgressBar1.Position := Player.GetPosition;
-    TrackBar1.Position := Player.GetPosition;
+ //   TrackBar1.Position := Player.GetPosition;
 
     // Получаем данные эквалайзера
    // Bands := Player.GetEQBandsDecay;
@@ -195,7 +198,7 @@ begin
   // Получаем данные эквалайзера
  // Bands := Player.GetEQBandsDecay;
   // Обновляем ProgressBar2 (можно выбрать любую полосу)
-  if Length(Bands) > 0 then
+ { if Length(Bands) > 0 then
     ProgressBar2.Position := Round(Bands[0] * ProgressBar2.Max);
 
   if Length(Bands) > 0 then
@@ -203,23 +206,26 @@ begin
 
   if Length(Bands) > 0 then
     ProgressBar4.Position := Round(Bands[4] * ProgressBar4.Max);
-
+       }
   PaintBox1.Invalidate;
+end;
+
+procedure TForm1.TrackBar1Change(Sender: TObject);
+begin
+  Player.SetPosition(TrackBar1.Position);
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
 if openDialog1.Execute then
 begin
-
- Player.Play(OpenDialog1.FileName);
+ Player.Play(OpenDialog1.FileName,6);
  Player.SetLoopMode(true); // Установить режим перед воспроизведением
  ProgressBar1.Max := Player.GetDuration;
  TrackBar1.Max := Player.GetDuration;
-
-
-
-
+ Memo1.Lines.Add('Current track: ' +  inttostr(Player.GetCurrentTrack));
+ Memo1.Lines.Add('Track count: ' +  inttostr(Player.GetTrackCount));
+ Memo1.Lines.Add(Player.GetCurrentEngine);
 end;
 end;
 
@@ -246,6 +252,11 @@ procedure TForm1.Button5Click(Sender: TObject);
 begin
   if not Player.IsPaused then Player.Pause else
     Player.Resume;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+ // Player.Play();
 end;
 
 procedure TForm1.DoPlayEvent(Sender: TObject; Track: Integer);

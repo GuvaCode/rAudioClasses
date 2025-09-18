@@ -25,7 +25,7 @@ type
     FPositionLock: TCriticalSection;
     FTrackEndTriggered: Boolean;
     FModuleInfo: ZXTuneModuleInfo;
-
+    FLoopCount: Integer;
     FEqBands: TEqBands;
     FEqBandsDecay: TEqBandsDecay;
 
@@ -130,7 +130,7 @@ begin
   FZxTuneData := nil;
   FZxTuneModule := nil;
   FZxTunePlayer := nil;
-
+  FLoopCount := 0;
 
 
   for i := 0 to EQ_BANDS - 1 do
@@ -295,7 +295,8 @@ begin
       end;
       if FCurrentPlayer.GetLoopMode then
       begin
-        ResetPlayback;
+        if FModuleInfo.LoopFrame >= 0 then Inc(FLoopCount);
+       { ResetPlayback;
         if FModuleInfo.LoopFrame >= 0 then
         begin
           // Получаем длительность одного фрейма в микросекундах
@@ -309,7 +310,7 @@ begin
           // Устанавливаем позицию
           SetPosition(LoopPositionMs);
         end;
-       FTrackEndTriggered := False;
+       FTrackEndTriggered := False; }
       end;
     end;
 
@@ -347,6 +348,7 @@ begin
 
     FIsPaused := False;
     FTrackEndTriggered := False;
+    FLoopCount := 0;
 
     if Assigned(FOnStop) then
       FOnStop(Self, FCurrentTrack);
@@ -381,7 +383,7 @@ begin
 
 
       LoadModuleFile(MusicFile);
-      FCurrentTrack := Track;
+      FCurrentTrack := 0;//Track;
 
       // Start playback
       FCurrentPlayer := Self;
@@ -456,12 +458,60 @@ end;
 procedure TZxTuneAudioPlayer.SetPosition(PositionMs: Integer);
 var
   SamplePos: NativeUInt;
+  FullDuration: Integer;
+  FrameDuration: Integer;
+  LoopPositionMs: Integer;
+  EffectivePositionMs: Integer;
 begin
   FPositionLock.Enter;
   try
     if FZxTunePlayer <> nil then
     begin
-      SamplePos := (PositionMs * DEFAULT_FREQ) div 1000;
+      // Получаем полную длительность трека
+      FullDuration := GetDuration();
+      if FullDuration <= 0 then Exit;
+
+      // Получаем позицию лупа
+      if FModuleInfo.LoopFrame >= 0 then
+      begin
+        FrameDuration := ZXTune_GetDuration(FZxTunePlayer);
+        if FrameDuration <= 0 then
+          FrameDuration := 20000;
+        LoopPositionMs := (FModuleInfo.LoopFrame * FrameDuration) div 1000;
+      end
+      else
+      begin
+        LoopPositionMs := 0;
+      end;
+
+      // Вычисляем эффективную позицию с учетом повторов
+      if FLoopCount > 0 then
+      begin
+        // Вычитаем время, которое прошло за предыдущие повторы
+        EffectivePositionMs := PositionMs - (FLoopCount * FullDuration) + (FLoopCount * LoopPositionMs);
+
+        // Если позиция меньше позиции лупа, значит мы еще в предыдущем проигрывании
+        if EffectivePositionMs < LoopPositionMs then
+        begin
+          Dec(FLoopCount);
+          EffectivePositionMs := PositionMs - (FLoopCount * FullDuration) + (FLoopCount * LoopPositionMs);
+        end;
+      end
+      else
+      begin
+        EffectivePositionMs := PositionMs;
+      end;
+
+      // Ограничиваем позицию пределами трека
+      if EffectivePositionMs > FullDuration then
+        EffectivePositionMs := FullDuration;
+      if EffectivePositionMs < 0 then
+        EffectivePositionMs := 0;
+
+      // Конвертируем миллисекунды в сэмплы
+      SamplePos := (EffectivePositionMs * DEFAULT_FREQ) div 1000;
+
+      // Устанавливаем позицию
       ZXTune_SeekSound(FZxTunePlayer, SamplePos);
     end;
   finally
@@ -469,10 +519,45 @@ begin
   end;
 end;
 
+
+{
+function TZxTuneAudioPlayer.GetPosition: Integer;
+var
+ Position: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FZxTunePlayer <> nil then
+    begin
+      // Get current position in samples
+      Samples := ZXTune_GetCurrentPosition(FZxTunePlayer);
+
+      // Get current frequency setting
+      Frequency := DEFAULT_FREQ;
+        if not ZXTune_GetModuleInfo(FZxTuneModule, FModuleInfo) then
+      raise Exception.Create('Failed to get module info');
+      // Convert samples to milliseconds: (samples / channels) / frequency * 1000
+      Position := Round((Samples / DEFAULT_CHANNELS) / Frequency * 1000) * 2 ;
+
+      //Position := getDuration
+      // FModuleInfo.LoopFrame;  переход
+      // FLoopCount;    вот из этого нужно чтотто придумать
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+}
+
 function TZxTuneAudioPlayer.GetPosition: Integer;
 var
   Samples: NativeUInt;
   Frequency: Integer;
+  FrameDuration: Integer;
+  LoopPositionMs: Integer;
+  FullDuration: Integer;
+  CurrentPlaybackPos: Integer;
 begin
   Result := 0;
   FPositionLock.Enter;
@@ -486,7 +571,38 @@ begin
       Frequency := DEFAULT_FREQ;
 
       // Convert samples to milliseconds: (samples / channels) / frequency * 1000
-      Result := Round((Samples / DEFAULT_CHANNELS) / Frequency * 1000)*2;
+      CurrentPlaybackPos := Round((Samples / DEFAULT_CHANNELS) / Frequency * 1000) * 2;
+
+      // Получаем полную длительность трека
+      FullDuration := GetDuration();
+
+      // Получаем позицию лупа
+      if FModuleInfo.LoopFrame >= 0 then
+      begin
+        FrameDuration := ZXTune_GetDuration(FZxTunePlayer);
+        if FrameDuration <= 0 then
+          FrameDuration := 20000;
+        LoopPositionMs := (FModuleInfo.LoopFrame * FrameDuration) div 1000;
+      end
+      else
+      begin
+        LoopPositionMs := 0;
+      end;
+
+      // Рассчитываем общую позицию с учетом повторов
+      if FLoopCount > 0 then
+      begin
+        Result := CurrentPlaybackPos + (LoopPositionMs * FLoopCount) - (FullDuration * FLoopCount);
+      end
+      else
+      begin
+        Result := CurrentPlaybackPos;
+      end;
+
+      // Корректируем, если позиция вышла за пределы
+      if Result < 0 then Result := 0;
+      if (FullDuration > 0) and (Result > FullDuration + (LoopPositionMs * FLoopCount)) then
+        Result := FullDuration + (LoopPositionMs * FLoopCount);
     end;
   finally
     FPositionLock.Leave;
@@ -561,7 +677,7 @@ end;
 
 function TZxTuneAudioPlayer.GetTrackCount: Integer;
 begin
-  Result := 1; // ZXTune обычно обрабатывает однодорожечные модули
+  Result := 0; // ZXTune обычно обрабатывает однодорожечные модули
 end;
 
 

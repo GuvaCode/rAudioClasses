@@ -1,0 +1,3 @@
+/usr/bin/cmake -E rm -f CMakeFiles/zxtune.dir/objects.a
+/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/zxtune.dir/objects.a @CMakeFiles/zxtune.dir/objects1.rsp
+/usr/bin/x86_64-w64-mingw32-g++ -O3 -DNDEBUG -static-libgcc -static-libstdc++ -static -shared -o libzxtune.dll -Wl,--out-implib,liblibzxtune.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles/zxtune.dir/objects.a -Wl,--no-whole-archive @CMakeFiles/zxtune.dir/linkLibs.rsp

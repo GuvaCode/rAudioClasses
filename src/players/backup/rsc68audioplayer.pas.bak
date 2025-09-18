@@ -1,0 +1,571 @@
+unit rSc68AudioPlayer;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, libsc68, libraudio, CommonTypes,
+  rAudioIntf, contnrs, syncobjs, math;
+
+type
+  { TSc68AudioPlayer }
+  TSc68AudioPlayer = class(TInterfacedObject, IMusicPlayer)
+  private
+    FStream: TAudioStream;
+    FFilename: string;
+
+    //FSc68: Psc68;
+    //FSc68Disk: Tsc68Disk;
+    // sc68
+    sc_init: Tsc68Init;
+    sc_cr:   Tsc68Create;
+    sc_inst  : Pointer;
+    sc_code : Tsc68Code;
+    sc_minfos : Tsc68MusicInfo ; // music infos
+    sc_cinfos : Tsc68CInfo;
+    sc_disc : Tsc68Disk;
+    sc_play : Tsc68Play;
+    SC68Instance: Psc68;
+
+    FIsPaused: Boolean;
+    FLoopMode: Boolean;
+    FCurrentTrack: Integer;
+    FPositionLock: TCriticalSection;
+    FTrackEndTriggered: Boolean;
+    FMusicInfo: Tsc68MusicInfo;
+
+    FEqBands: TEqBands;
+    FEqBandsDecay: TEqBandsDecay;
+
+    // Event handlers
+    FOnPlay: TPlayEvent;
+    FOnPause: TPauseEvent;
+    FOnStop: TStopEvent;
+    FOnEnd: TEndEvent;
+    FOnError: TErrorEvent;
+
+    class var FPlayers: TFPHashList;
+    class var FCurrentPlayer: TSc68AudioPlayer;
+
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+
+    procedure InitializeAudioStream;
+    procedure ResetPlayback;
+    class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
+    procedure InternalStop(ClearSc68: Boolean = True);
+    procedure CheckError(Condition: Boolean; const Msg: string);
+    procedure LoadModuleFile(const MusicFile: string);
+    procedure FreeSc68Data;
+
+    procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+
+    const
+      DEFAULT_FREQ = 44100;
+      DEFAULT_BITS = 16;
+      DEFAULT_CHANNELS = 2;
+      BUFFER_SIZE = 8192; // Размер буфера для рендеринга звука
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // IMusicPlayer implementation
+    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+    procedure SetPosition(PositionMs: Integer);
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // Event properties
+    function GetOnPlay: TPlayEvent;
+    function GetOnPause: TPauseEvent;
+    function GetOnStop: TStopEvent;
+    function GetOnEnd: TEndEvent;
+    function GetOnError: TErrorEvent;
+    procedure SetOnPlay(AEvent: TPlayEvent);
+    procedure SetOnPause(AEvent: TPauseEvent);
+    procedure SetOnStop(AEvent: TStopEvent);
+    procedure SetOnEnd(AEvent: TEndEvent);
+    procedure SetOnError(AEvent: TErrorEvent);
+
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+  end;
+
+implementation
+
+{ TSc68AudioPlayer }
+
+class constructor TSc68AudioPlayer.ClassCreate;
+begin
+  FPlayers := TFPHashList.Create;
+  FCurrentPlayer := nil;
+end;
+
+class destructor TSc68AudioPlayer.ClassDestroy;
+begin
+  FPlayers.Free;
+end;
+
+constructor TSc68AudioPlayer.Create;
+var
+  i: integer;
+  appname: array[0..8] of Char = 'Lazarus'#0;
+  argv: array[0..0] of PChar;
+begin
+  inherited Create;
+  FTrackEndTriggered := False;
+  FIsPaused := False;
+  FLoopMode := False;
+  FCurrentTrack := 0;
+  FPositionLock := TCriticalSection.Create;
+  SC68Instance := nil;
+  sc_disc := nil;
+
+  for i := 0 to EQ_BANDS - 1 do
+  begin
+    FEqBands[i] := 0;
+    FEqBandsDecay[i] := 0;
+  end;
+
+  // Инициализация SC68
+//  FillChar(InitParams, SizeOf(Tsc68Init), 0);
+//  InitParams.sampling_rate := DEFAULT_FREQ;
+
+  // Initialise les paramètres SC68 un cauchemar !!!!
+  FillChar(sc_init, SizeOf(Tsc68Init), 0);
+  argv[0] := appname;
+  sc_init.argc := Length(argv);
+  sc_init.argv := @argv[0];
+  sc_init.Flags.NoLoadConfig:=false;
+ // FileName := 'madness.sc68';
+  sc_init.sampling_rate := 44100;
+
+  if sc68_init(sc_init) < 0 then
+  raise Exception.Create('Failed to initialize SC68 library');
+
+  // Создание экземпляра SC68
+  // instance SC68
+      FillChar(sc_cr, SizeOf(sc_cr), 0);
+       sc_cr.SamplingRate := 44100;
+       sc_cr.Name :=  PChar('Lazarus'#0);
+       SC68Instance := sc68_create(sc_cr);
+      if SC68Instance = nil then
+      raise Exception.Create('Failed to create SC68 instance');
+
+{
+FillChar(sc_cr, SizeOf(sc_cr), 0);
+      sc_cr.SamplingRate := 44100;
+      sc_cr.Name :=  PChar('Lazarus'#0);
+      SC68Instance := sc68_create(sc_cr);
+      }
+
+
+
+
+  InitializeAudioStream;
+end;
+
+destructor TSc68AudioPlayer.Destroy;
+begin
+  InternalStop;
+  FreeSc68Data;
+
+  if SC68Instance <> nil then
+    sc68_destroy(SC68Instance);
+
+  FPositionLock.Free;
+  inherited Destroy;
+end;
+
+procedure TSc68AudioPlayer.InitializeAudioStream;
+begin
+  SetAudioStreamBufferSizeDefault(BUFFER_SIZE);
+  FStream := LoadAudioStream(DEFAULT_FREQ, DEFAULT_BITS, DEFAULT_CHANNELS);
+  if not IsAudioStreamReady(FStream) then
+    raise Exception.Create('Failed to initialize audio stream');
+
+  FPlayers.Add(IntToStr(PtrInt(Self)), Self);
+  SetAudioStreamCallback(FStream, @AudioCallback);
+end;
+
+procedure TSc68AudioPlayer.LoadModuleFile(const MusicFile: string);
+begin
+  FreeSc68Data;
+
+  try
+    // Загрузка диска
+    sc_disc := sc68_load_disk_uri(PChar(MusicFile));
+    if sc_disc = nil then
+      raise Exception.Create('Failed to load SC68 disk');
+
+    // Открытие диска в плеере
+    if sc68_open(SC68Instance, sc_disc) <> Integer(SC68_OK) then
+      raise Exception.Create('Failed to open SC68 disk');
+
+    // Получение информации о музыке
+    FillChar(FMusicInfo, SizeOf(Tsc68MusicInfo), 0);
+    if sc68_music_info(SC68Instance, FMusicInfo, -1, sc_disc) <> Integer(SC68_OK) then
+      raise Exception.Create('Failed to get music info');
+
+    FFilename := MusicFile;
+  except
+    FreeSc68Data;
+    raise;
+  end;
+end;
+
+procedure TSc68AudioPlayer.FreeSc68Data;
+begin
+  if SC68Instance <> nil then
+    sc68_close(SC68Instance);
+
+  if FSc68Disk <> nil then
+  begin
+    sc68_disk_free(FSc68Disk);
+    FSc68Disk := nil;
+  end;
+end;
+
+procedure TSc68AudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+{$I BandAnalyzer.inc}
+end;
+
+procedure TSc68AudioPlayer.ResetPlayback;
+begin
+  if SC68Instance <> nil then
+  begin
+    sc68_stop(SC68Instance);
+  end;
+end;
+
+class procedure TSc68AudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
+var
+  SamplesRendered: Integer;
+  Status: Tsc68Code;
+begin
+  if FCurrentPlayer = nil then Exit;
+
+  with FCurrentPlayer do
+  begin
+    FPositionLock.Enter;
+    try
+      if (SC68Instance = nil) or FIsPaused then
+      begin
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
+      end;
+
+      // Рендерим звук в буфер
+      SamplesRendered := sc68_process(SC68Instance, bufferData, @frames);
+
+      // TTF анализ
+      AnalyzeAudioBuffer(bufferData, frames);
+
+      // Проверка статуса воспроизведения
+      Status := Tsc68Code(sc68_cntl(SC68Instance, Integer(SC68_GET_LAST), []));
+
+      if (Status = SC68_END) or (Status = SC68_ERROR) then
+      begin
+        if Assigned(FOnEnd) and (not FLoopMode) then
+        begin
+          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FTrackEndTriggered := True;
+        end;
+
+        if FLoopMode then
+        begin
+          ResetPlayback;
+          sc68_play(SC68Instance, FCurrentTrack, Integer(SC68_INF_LOOP));
+          FTrackEndTriggered := False;
+        end;
+      end;
+
+    finally
+      FPositionLock.Leave;
+      if FTrackEndTriggered then
+        InternalStop(True);
+    end;
+  end;
+end;
+
+procedure TSc68AudioPlayer.CheckError(Condition: Boolean; const Msg: string);
+begin
+  if Condition and Assigned(FOnError) then
+    FOnError(Self, Msg);
+end;
+
+procedure TSc68AudioPlayer.InternalStop(ClearSc68: Boolean);
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+      if FCurrentPlayer = Self then
+      begin
+        StopAudioStream(FStream);
+        FCurrentPlayer := nil;
+      end;
+
+      if ClearSc68 then
+        FreeSc68Data;
+
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnStop) then
+        FOnStop(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSc68AudioPlayer.Play(const MusicFile: String; Track: Integer);
+begin
+  if not FileExists(MusicFile) then
+  begin
+    CheckError(True, 'File not found: ' + MusicFile);
+    Exit;
+  end;
+
+  FPositionLock.Enter;
+  try
+    // Останавливаем текущее воспроизведение
+    if IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Загружаем новый модуль
+    try
+      LoadModuleFile(MusicFile);
+      FCurrentTrack := Track;
+
+      // Запускаем воспроизведение
+      if sc68_play(SC68Instance, FCurrentTrack, IfThen(FLoopMode, Integer(SC68_INF_LOOP), Integer(SC68_DEF_LOOP))) <> Integer(SC68_OK) then
+        raise Exception.Create('Failed to start playback');
+
+      FCurrentPlayer := Self;
+      PlayAudioStream(FStream);
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    except
+      on E: Exception do
+      begin
+        CheckError(True, 'Error loading module: ' + E.Message);
+        InternalStop;
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSc68AudioPlayer.Pause;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and not FIsPaused then
+    begin
+      PauseAudioStream(FStream);
+      FIsPaused := True;
+
+      if Assigned(FOnPause) then
+        FOnPause(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSc68AudioPlayer.Resume;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and FIsPaused then
+    begin
+      ResumeAudioStream(FStream);
+      FIsPaused := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSc68AudioPlayer.Stop;
+begin
+  InternalStop;
+end;
+
+procedure TSc68AudioPlayer.SetPosition(PositionMs: Integer);
+var
+  TrackPosMs: Integer;
+begin
+  FPositionLock.Enter;
+  try
+    if SC68Instance <> nil then
+    begin
+      // SC68 использует позицию в миллисекундах для установки позиции
+      TrackPosMs := PositionMs;
+      sc68_cntl(SC68Instance, Integer(SC68_SET_POS), [TrackPosMs]);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TSc68AudioPlayer.GetPosition: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if SC68Instance <> nil then
+    begin
+      // Получаем позицию в миллисекундах
+      Result := sc68_cntl(SC68Instance, Integer(SC68_GET_POS), []);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TSc68AudioPlayer.GetDuration: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if (SC68Instance <> nil) and (FMusicInfo.TrackInfo.TimeMs > 0) then
+    begin
+      // Используем информацию о длительности трека из music info
+      Result := FMusicInfo.TrackInfo.TimeMs;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSc68AudioPlayer.SetLoopMode(Mode: Boolean);
+begin
+  FLoopMode := Mode;
+  // SC68 автоматически обрабатывает циклы через параметры воспроизведения
+end;
+
+function TSc68AudioPlayer.GetLoopMode: Boolean;
+begin
+  Result := FLoopMode;
+end;
+
+function TSc68AudioPlayer.IsPlaying: Boolean;
+begin
+  Result := (FCurrentPlayer = Self) and not FIsPaused and (SC68Instance <> nil);
+end;
+
+function TSc68AudioPlayer.IsPaused: Boolean;
+begin
+  Result := FIsPaused;
+end;
+
+function TSc68AudioPlayer.GetCurrentTrack: Integer;
+begin
+  Result := FCurrentTrack;
+end;
+
+function TSc68AudioPlayer.GetCurrentFile: String;
+begin
+  Result := FFilename;
+end;
+
+function TSc68AudioPlayer.GetTrackCount: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if SC68Instance <> nil then
+    begin
+      // Получаем количество треков
+      Result := sc68_cntl(SC68Instance, Integer(SC68_GET_TRACKS), []);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TSc68AudioPlayer.GetEQBandsDecay: TEqBandsDecay;
+begin
+  Result := Self.FEqBandsDecay;
+end;
+
+// Event property getters/setters
+function TSc68AudioPlayer.GetOnPlay: TPlayEvent;
+begin
+  Result := FOnPlay;
+end;
+
+function TSc68AudioPlayer.GetOnPause: TPauseEvent;
+begin
+  Result := FOnPause;
+end;
+
+function TSc68AudioPlayer.GetOnStop: TStopEvent;
+begin
+  Result := FOnStop;
+end;
+
+function TSc68AudioPlayer.GetOnEnd: TEndEvent;
+begin
+  Result := FOnEnd;
+end;
+
+function TSc68AudioPlayer.GetOnError: TErrorEvent;
+begin
+  Result := FOnError;
+end;
+
+procedure TSc68AudioPlayer.SetOnPlay(AEvent: TPlayEvent);
+begin
+  FOnPlay := AEvent;
+end;
+
+procedure TSc68AudioPlayer.SetOnPause(AEvent: TPauseEvent);
+begin
+  FOnPause := AEvent;
+end;
+
+procedure TSc68AudioPlayer.SetOnStop(AEvent: TStopEvent);
+begin
+  FOnStop := AEvent;
+end;
+
+procedure TSc68AudioPlayer.SetOnEnd(AEvent: TEndEvent);
+begin
+  FOnEnd := AEvent;
+end;
+
+procedure TSc68AudioPlayer.SetOnError(AEvent: TErrorEvent);
+begin
+  FOnError := AEvent;
+end;
+
+end.

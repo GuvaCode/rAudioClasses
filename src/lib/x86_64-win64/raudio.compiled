@@ -2,5 +2,5 @@
 <CONFIG>
   <Lazarus Version="4.99"/>
   <Compiler Value="/home/vadim/fpcupdeluxe/fpc/bin/x86_64-linux/fpc.sh" Date="1757671674"/>
-  <Params Value="-Twin64 -MObjFPC -Scghi -O1 -g -gl -l -vewnhibq -Fu/home/vadim/Проекты/rAudioClasses/src/ -Fu/home/vadim/Проекты/rAudioClasses/src/bindings -Fu/home/vadim/Проекты/rAudioClasses/src/players -Fu/home/vadim/fpcupdeluxe/lazarus/packager/units/x86_64-win64 -FU/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-win64/ raudio.pas"/>
+  <Params Value="-Twin64 -MObjFPC -Scghi -O1 -g -gl -l -vewnhibq -Fu/home/vadim/Проекты/rAudioClasses/src/ -Fu/home/vadim/Проекты/rAudioClasses/src/bindings -Fu/home/vadim/Проекты/rAudioClasses/src/players -Fu/home/vadim/fpcupdeluxe/lazarus/packager/units/x86_64-win64 -Fu/home/vadim/fpcupdeluxe/lazarus/components/lazutils/lib/x86_64-win64 -Fu/home/vadim/fpcupdeluxe/lazarus/components/freetype/lib/x86_64-win64 -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-win64 -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-win64/win32 -FU/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-win64/ -dLCL -dLCLwin32 raudio.pas"/>
 </CONFIG>

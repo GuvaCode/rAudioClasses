@@ -1,0 +1,163 @@
+unit libsidplayfp;
+
+{$mode objfpc}{$H+}
+{$packrecords c}
+
+interface
+
+uses
+  SysUtils, dynlibs;
+
+const
+  {$IFDEF MSWINDOWS}
+  DEFAULT_LIB_NAME = 'SidPlay.dll';
+  {$ELSE}
+  {$IFDEF DARWIN}
+  DEFAULT_LIB_NAME = 'libSidPlay.dylib';
+  {$ELSE}
+  DEFAULT_LIB_NAME = 'libsidplayfp.so.6.5.37';
+  {$ENDIF}
+  {$ENDIF}
+
+  MAX_POWER_ON_DELAY = $1FFF;
+  DEFAULT_POWER_ON_DELAY: UInt16 = MAX_POWER_ON_DELAY;
+  DEFAULT_SAMPLING_FREQ: UInt32 = 44100;
+
+type
+  TUint8 = Byte;
+  PUint8 = ^TUint8;
+  TUint32 = Cardinal;
+  TUint16 = Word;
+  TInt32 = Integer;
+
+  TShortArray = array[0..0] of SmallInt;
+  PShortArray = ^TShortArray;
+
+  playback_t = (MONO = 1, STEREO);
+  sid_model_t = (MOS6581, MOS8580);
+  sid_cw_t = (AVERAGE, WEAK, STRONG);
+  cia_model_t = (MOS6526, MOS8521, MOS6526W4485);
+  c64_model_t = (PAL, NTSC, OLD_NTSC, DREAN, PAL_M);
+  sampling_method_t = (INTERPOLATE, RESAMPLE_INTERPOLATE);
+
+  PSidConfig = ^TSidConfig;
+  TSidConfig = record
+    DefaultC64Model: c64_model_t;
+    ForceC64Model: Boolean;
+    DefaultSidModel: sid_model_t;
+    ForceSidModel: Boolean;
+    DigiBoost: Boolean;
+    CiaModel: cia_model_t;
+    Playback: playback_t;
+    Frequency: UInt32;
+    SecondSidAddress: UInt16;
+    ThirdSidAddress: UInt16;
+    SidEmulation: Pointer;
+    LeftVolume: UInt32;
+    RightVolume: UInt32;
+    PowerOnDelay: UInt16;
+    FastSampling: Boolean;
+  end;
+
+var
+  // ROM functions
+//  sid_SetRoms: procedure(kernal, basic, character: Byte); cdecl;
+//  setRoms(const uint8_t* kernal, const uint8_t* basic=0, const uint8_t* character=0);
+//  sid_Set_Kernal: procedure(rom: PUint8); cdecl;
+  sid_Set_Basic: procedure(rom: PUint8); cdecl;
+  sid_Set_Chargen: procedure(rom: PUint8); cdecl;
+
+  // Song selection
+  sid_Select_Song: function(song: Integer): Integer; cdecl;
+
+  // SID engine functions
+  sid_Create: function: Pointer; cdecl;
+  sid_Config: function: Boolean; cdecl;
+  sid_load: function(oneFileFormatSidtune: Pointer; sidtuneLength: TUint32; songnum: Integer): Boolean; cdecl;
+
+  // Playback control
+  sid_play: function(buffer: PByte; count: UInt32): Integer; cdecl;
+  isPlaying: function: Boolean; cdecl;
+  sid_stop: procedure; cdecl;
+
+  // Debug and control
+  debug: procedure(enable: Boolean; outFile: Pointer); cdecl;
+  mute: procedure(sidNum, voice: TInt32; enable: Boolean); cdecl;
+
+  // Status information
+  error: function: PChar; cdecl;
+  timeMs: function: TUint32; cdecl;
+  getCia1TimerA: function: Int16; cdecl;
+  sid_GetStatus: function: Boolean; cdecl;
+
+procedure LoadSidPlayLibrary(const LibraryName: string = DEFAULT_LIB_NAME);
+function SidPlayLoaded: Boolean;
+
+implementation
+
+var
+  library_handle: TLibHandle = NilHandle;
+
+procedure LoadProc(var fn_var; const fn_name: string);
+begin
+  pointer(fn_var) := GetProcedureAddress(library_handle, fn_name);
+  if pointer(fn_var) = nil then
+    raise Exception.CreateFmt('Could not load procedure "%s"', [fn_name]);
+end;
+
+procedure LoadSidPlayLibrary(const LibraryName: string);
+begin
+  if library_handle <> NilHandle then
+    Exit; // Уже загружена
+
+  library_handle := LoadLibrary(LibraryName);
+  if library_handle = NilHandle then
+    raise Exception.CreateFmt('Could not load library "%s"', [LibraryName]);
+
+  try
+    // ROM functions
+    LoadProc(sid_SetRoms, 'SID_SetRoms');
+ //   LoadProc(sid_Set_Kernal, 'sid_Set_Kernal');
+    LoadProc(sid_Set_Basic, 'sid_Set_Basic');
+    LoadProc(sid_Set_Chargen, 'sid_Set_Chargen');
+
+    // Song selection
+    LoadProc(sid_Select_Song, 'sid_Select_Song');
+
+    // SID engine functions
+    LoadProc(sid_Create, 'sid_Create');
+    LoadProc(sid_Config, 'sid_Config');
+    LoadProc(sid_load, 'sid_load');
+
+    // Playback control
+    LoadProc(sid_play, 'sid_play');
+    LoadProc(isPlaying, 'isPlaying');
+    LoadProc(sid_stop, 'sid_stop');
+
+    // Debug and control
+    LoadProc(debug, 'debug');
+    LoadProc(mute, 'mute');
+
+    // Status information
+    LoadProc(error, 'error');
+    LoadProc(timeMs, 'timeMs');
+    LoadProc(getCia1TimerA, 'getCia1TimerA');
+    LoadProc(sid_GetStatus, 'sid_GetStatus');
+
+  except
+    UnloadLibrary(library_handle);
+    library_handle := NilHandle;
+    raise;
+  end;
+end;
+
+function SidPlayLoaded: Boolean;
+begin
+  Result := library_handle <> NilHandle;
+end;
+
+finalization
+  ///if library_handle <> NilHandle then
+   // UnloadLibrary(library_handle);
+
+end.

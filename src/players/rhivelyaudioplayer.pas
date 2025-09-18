@@ -348,38 +348,34 @@ end;
 procedure THivelyAudioPlayer.SetPosition(PositionMs: Integer);
 begin
   // HivelyTracker doesn't support seeking, so we implement by stopping and restarting
-  if PositionMs = 0 then
-  begin
-    FPositionLock.Enter;
-    try
-      if Assigned(FHivelyTune) then
-      begin
-        InternalStop(False);
-        hvl_InitSubsong(FHivelyTune, 0);
-        if FCurrentPlayer = Self then
-          PlayAudioStream(FStream);
-      end;
-    finally
-      FPositionLock.Leave;
-    end;
-  end;
+
 end;
 
 function THivelyAudioPlayer.GetPosition: Integer;
 begin
+
   Result := 0;
+ { FPositionLock.Enter;
+  try
+    if Assigned(FHivelyTune) then
+      Result :=hvl_GetCurrentFrame(FHivelyTune);
+  finally
+    FPositionLock.Leave;
+  end; }
 end;
+
+
 
 function THivelyAudioPlayer.GetDuration: Integer;
 begin
   Result := 0;
-  FPositionLock.Enter;
+ { FPositionLock.Enter;
   try
     if Assigned(FHivelyTune) then
-      Result := FHivelyTune^.ht_PlayingTime div 1000; // Convert to milliseconds
+      Result := FHivelyTune^.ht_PlayingTime; // Convert to milliseconds
   finally
     FPositionLock.Leave;
-  end;
+  end;}
 end;
 
 procedure THivelyAudioPlayer.SetLoopMode(Mode: Boolean);

@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CONFIG>
-  <Compiler Value="/home/vadim/fpcupdeluxe/fpc/bin/x86_64-linux/fpc.sh" Date="1757671674"/>
-  <Params Value="-MObjFPC -Scghi -Cg -O1 -gw3 -gl -l -vewnhibq -Fi/home/vadim/Проекты/rAudioClasses/test_win64/lib/x86_64-linux -Fl/home/vadim/Проекты/rAudioClasses/src/static_libs/x86_64-linux -Fu/home/vadim/Проекты/rAudioClasses/test_win64/ -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-linux/gtk2 -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/components/freetype/lib/x86_64-linux -Fu/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/components/lazutils/lib/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/packager/units/x86_64-linux -FU/home/vadim/Проекты/rAudioClasses/test_win64/lib/x86_64-linux/ -FE/home/vadim/Проекты/rAudioClasses/test_win64/ -o/home/vadim/Проекты/rAudioClasses/test_win64/project1 -dLCL -dLCLgtk2 project1.lpr"/>
-</CONFIG>

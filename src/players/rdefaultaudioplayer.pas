@@ -56,7 +56,8 @@ type
     destructor Destroy; override;
 
     // Основные методы управления
-    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Play(const MusicFile: String; Track: Integer = 1);
+
     procedure Pause;
     procedure Resume;
     procedure Stop;

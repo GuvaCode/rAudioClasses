@@ -162,6 +162,7 @@ end;
 procedure TAsapAudioPlayer.LoadModuleFile(const MusicFile: string);
 var
   FileStream: TFileStream;
+  IsNtscModule: Boolean;
 begin
   FreeModuleData;
 
@@ -189,9 +190,14 @@ begin
     if FAsapInfo = nil then
       raise Exception.Create('Failed to get ASAP module info');
 
-   ASAPInfo_SetNtsc(FAsapInfo, FAsapInfo^.ntsc);
+    // ПРАВИЛЬНАЯ ПРОВЕРКА И УСТАНОВКА NTSC/PAL
+    IsNtscModule := ASAPInfo_IsNtsc(FAsapInfo);
 
-   // Установка частоты дискретизации
+    // Установка правильного режима для модуля
+    if ASAPInfo_CanSetNtsc(FAsapInfo) then
+      ASAPInfo_SetNtsc(FAsapInfo, IsNtscModule);
+
+    // Установка частоты дискретизации
     ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
 
     // Воспроизведение выбранного трека
@@ -243,6 +249,7 @@ end;
 class procedure TAsapAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
 var
   SamplesRendered: Integer;
+  CurrentPosition, CurrentDuration: Integer;
 begin
   if FCurrentPlayer = nil then Exit;
 
@@ -260,7 +267,7 @@ begin
       SamplesRendered := ASAP_Generate(
         FAsap,
         bufferData,
-        frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8) ,
+        frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8),
         ASAPSampleFormat_S16_L_E
       );
 
@@ -268,7 +275,11 @@ begin
       AnalyzeAudioBuffer(bufferData, frames);
 
       // Проверка окончания трека
-      if GetPosition >= GetDuration then
+      CurrentPosition := GetPosition;
+      CurrentDuration := GetDuration;
+
+      // Если длительность неизвестна (-1) или позиция достигла конца
+      if (CurrentDuration > 0) and (CurrentPosition >= CurrentDuration) then
       begin
         if Assigned(FOnEnd) and (not FLoopMode) then
         begin
@@ -342,6 +353,10 @@ begin
       FCurrentTrack := Track;
       LoadModuleFile(MusicFile);
 
+      // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА ЧАСТОТЫ ДИСКРЕТИЗАЦИИ
+      if ASAP_GetSampleRate(FAsap) <> DEFAULT_FREQ then
+        ASAP_SetSampleRate(FAsap, DEFAULT_FREQ);
+
       // Начинаем воспроизведение
       FCurrentPlayer := Self;
       PlayAudioStream(FStream);
@@ -402,32 +417,28 @@ begin
 end;
 
 procedure TAsapAudioPlayer.SetPosition(PositionMs: Integer);
-var
-  SamplePos: Integer;
 begin
   FPositionLock.Enter;
   try
     if FAsap <> nil then
     begin
-      SamplePos := (PositionMs * DEFAULT_FREQ) div 1000;
-      ASAP_SeekSample(FAsap, SamplePos);
+      // ASAP_Seek принимает позицию в миллисекундах
+      ASAP_Seek(FAsap, PositionMs);
     end;
   finally
-    FPositionLock.Leave;
+  FPositionLock.Leave;
   end;
 end;
 
 function TAsapAudioPlayer.GetPosition: Integer;
-var
-  Position: Integer;
 begin
   Result := 0;
   FPositionLock.Enter;
   try
     if FAsap <> nil then
     begin
-      Position := ASAP_GetPosition(FAsap);
-      Result := (Position * 1000) div DEFAULT_FREQ;
+      // ASAP_GetPosition возвращает позицию в миллисекундах
+      Result := ASAP_GetPosition(FAsap);
     end;
   finally
     FPositionLock.Leave;
@@ -441,6 +452,7 @@ begin
   try
     if (FAsapInfo <> nil) and (FCurrentTrack >= 0) then
     begin
+      // ASAPInfo_GetDuration возвращает длительность в миллисекундах
       Result := ASAPInfo_GetDuration(FAsapInfo, FCurrentTrack);
     end;
   finally
@@ -457,10 +469,10 @@ end;
 function TAsapAudioPlayer.GetLoopMode: Boolean;
 begin
   Result := FLoopMode;
-  if (FAsapInfo <> nil) and (FCurrentTrack >= 0) then
+ { if (FAsapInfo <> nil) and (FCurrentTrack >= 0) then
   begin
-    Result := Result or ASAPInfo_GetLoop(FAsapInfo, FCurrentTrack);
-  end;
+    Result :=  ASAPInfo_GetLoop(FAsapInfo, FCurrentTrack);
+  end; }
 end;
 
 function TAsapAudioPlayer.IsPlaying: Boolean;
@@ -484,12 +496,14 @@ begin
 end;
 
 function TAsapAudioPlayer.GetTrackCount: Integer;
+var Cnt: Integer;
 begin
-  Result := 1;
+  Result := 0;
   if FAsapInfo <> nil then
   begin
-    Result := ASAPInfo_GetSongs(FAsapInfo);
+    Result := ASAPInfo_GetSongs(FAsapInfo) - 1;
   end;
+ // if Cnt <= 1 then Result := 0;
 end;
 
 function TAsapAudioPlayer.GetEQBandsDecay: TEqBandsDecay;

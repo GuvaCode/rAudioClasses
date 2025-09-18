@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Lazarus Version="4.2"/>
-  <Compiler Value="/usr/bin/fpc" Date="1625802185"/>
-  <Params Value="-MObjFPC -Scghi -Cg -O1 -g -gl -l -vewnhibq -Fu/home/vadim/Проекты/rAudioClasses/src/ -Fu/home/vadim/Проекты/rAudioClasses/src/bindings -Fu/home/vadim/Проекты/rAudioClasses/src/players -Fu/usr/share/lazarus/4.2.0/packager/units/x86_64-linux -FU/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-linux/ raudio.pas"/>
+  <Lazarus Version="4.99"/>
+  <Compiler Value="/home/vadim/fpcupdeluxe/fpc/bin/x86_64-linux/fpc.sh" Date="1757671674"/>
+  <Params Value="-MObjFPC -Scghi -Cg -O1 -g -gl -l -vewnhibq -Fu/home/vadim/Проекты/rAudioClasses/src/ -Fu/home/vadim/Проекты/rAudioClasses/src/bindings -Fu/home/vadim/Проекты/rAudioClasses/src/players -Fu/home/vadim/fpcupdeluxe/lazarus/packager/units/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/components/lazutils/lib/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/components/freetype/lib/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-linux -Fu/home/vadim/fpcupdeluxe/lazarus/lcl/units/x86_64-linux/gtk2 -FU/home/vadim/Проекты/rAudioClasses/src/lib/x86_64-linux/ -dLCL -dLCLgtk2 raudio.pas"/>
 </CONFIG>

@@ -1,0 +1,526 @@
+unit rSidAudioPlayer;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, libSidPlayfp, libraudio, CommonTypes,
+  rAudioIntf, contnrs, syncobjs, math;
+
+type
+  { TSidAudioPlayer }
+  TSidAudioPlayer = class(TInterfacedObject, IMusicPlayer)
+  private
+    FStream: TAudioStream;
+    FFilename: string;
+    FFileData: Pointer;
+    FFileSize: NativeUInt;
+    FSidEngine: Pointer;
+    FIsPaused: Boolean;
+    FLoopMode: Boolean;
+    FCurrentTrack: Integer;
+    FTrackCount: Integer;
+    FPositionLock: TCriticalSection;
+    FTrackEndTriggered: Boolean;
+
+    FEqBands: TEqBands;
+    FEqBandsDecay: TEqBandsDecay;
+
+    // Event handlers
+    FOnPlay: TPlayEvent;
+    FOnPause: TPauseEvent;
+    FOnStop: TStopEvent;
+    FOnEnd: TEndEvent;
+    FOnError: TErrorEvent;
+
+    class var FPlayers: TFPHashList;
+    class var FCurrentPlayer: TSidAudioPlayer;
+
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+
+    procedure InitializeAudioStream;
+    procedure ResetPlayback;
+    class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
+    procedure InternalStop(ClearTune: Boolean = True);
+    procedure CheckError(Condition: Boolean; const Msg: string);
+    procedure LoadSidFile(const MusicFile: string);
+    procedure FreeSidData;
+
+    procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+
+    const
+      DEFAULT_FREQ = 44100;
+      DEFAULT_BITS = 16;
+      DEFAULT_CHANNELS = 2;
+      BUFFER_SIZE = 8192;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // IMusicPlayer implementation
+    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+    procedure SetPosition(PositionMs: Integer);
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // Event properties
+    function GetOnPlay: TPlayEvent;
+    function GetOnPause: TPauseEvent;
+    function GetOnStop: TStopEvent;
+    function GetOnEnd: TEndEvent;
+    function GetOnError: TErrorEvent;
+    procedure SetOnPlay(AEvent: TPlayEvent);
+    procedure SetOnPause(AEvent: TPauseEvent);
+    procedure SetOnStop(AEvent: TStopEvent);
+    procedure SetOnEnd(AEvent: TEndEvent);
+    procedure SetOnError(AEvent: TErrorEvent);
+
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+  end;
+
+implementation
+
+{ TSidAudioPlayer }
+
+class constructor TSidAudioPlayer.ClassCreate;
+begin
+  FPlayers := TFPHashList.Create;
+  FCurrentPlayer := nil;
+end;
+
+class destructor TSidAudioPlayer.ClassDestroy;
+begin
+  FPlayers.Free;
+end;
+
+constructor TSidAudioPlayer.Create;
+var
+  i: Integer;
+begin
+  inherited Create;
+  FTrackEndTriggered := False;
+  FIsPaused := False;
+  FLoopMode := False;
+  FCurrentTrack := 0;
+  FTrackCount := 0;
+  FPositionLock := TCriticalSection.Create;
+  FFileData := nil;
+  FFileSize := 0;
+  FSidEngine := nil;
+
+  for i := 0 to EQ_BANDS - 1 do
+  begin
+    FEqBands[i] := 0;
+    FEqBandsDecay[i] := 0;
+  end;
+
+  InitializeAudioStream;
+end;
+
+destructor TSidAudioPlayer.Destroy;
+begin
+  InternalStop;
+  FreeSidData;
+  FPositionLock.Free;
+  inherited Destroy;
+end;
+
+procedure TSidAudioPlayer.InitializeAudioStream;
+begin
+  SetAudioStreamBufferSizeDefault(BUFFER_SIZE);
+  FStream := LoadAudioStream(DEFAULT_FREQ, DEFAULT_BITS, DEFAULT_CHANNELS);
+  if not IsAudioStreamReady(FStream) then
+    raise Exception.Create('Failed to initialize audio stream');
+
+  FPlayers.Add(IntToStr(PtrInt(Self)), Self);
+  SetAudioStreamCallback(FStream, @AudioCallback);
+end;
+
+procedure TSidAudioPlayer.LoadSidFile(const MusicFile: string);
+var
+  FileStream: TFileStream;
+  Config: TSidConfig;
+begin
+  FreeSidData;
+
+  try
+    // Загрузка файла в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FFileSize := FileStream.Size;
+      GetMem(FFileData, FFileSize);
+      FileStream.ReadBuffer(FFileData^, FFileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Создание SID движка
+    FSidEngine := sid_Create;
+    if FSidEngine = nil then
+      raise Exception.Create('Failed to create SID engine');
+
+    // Загрузка SID файла
+    if not sid_load(FFileData, FFileSize, FCurrentTrack) then
+      raise Exception.Create('Failed to load SID file: ' + string(error()));
+
+    // Получение количества треков
+    FTrackCount := 1; // По умолчанию 1 трек, можно расширить для поддержки multi-song SID
+
+    FFilename := MusicFile;
+  except
+    on E: Exception do
+    begin
+      FreeSidData;
+      raise Exception.Create('Error loading SID file: ' + E.Message);
+    end;
+  end;
+end;
+
+procedure TSidAudioPlayer.FreeSidData;
+begin
+  if FSidEngine <> nil then
+  begin
+    sid_stop;
+    // Освобождение ресурсов движка (если есть соответствующая функция в библиотеке)
+    FSidEngine := nil;
+  end;
+
+  if FFileData <> nil then
+  begin
+    FreeMem(FFileData);
+    FFileData := nil;
+    FFileSize := 0;
+  end;
+end;
+
+procedure TSidAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+{$I BandAnalyzer.inc}
+end;
+
+procedure TSidAudioPlayer.ResetPlayback;
+begin
+  if FSidEngine <> nil then
+  begin
+    // Сброс воспроизведения к началу
+    sid_stop;
+    if not sid_load(FFileData, FFileSize, FCurrentTrack) then
+      raise Exception.Create('Failed to reset SID playback');
+  end;
+end;
+
+class procedure TSidAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
+var
+  SamplesRendered: Integer;
+begin
+  if FCurrentPlayer = nil then Exit;
+
+  with FCurrentPlayer do
+  begin
+    FPositionLock.Enter;
+    try
+      if (FSidEngine = nil) or FIsPaused then
+      begin
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
+      end;
+
+      // Рендерим звук в буфер
+      SamplesRendered := sid_play(bufferData, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8));
+
+      // Анализ аудиобуфера для TTF
+      AnalyzeAudioBuffer(bufferData, frames);
+
+      // Проверка окончания трека
+      if not isPlaying then
+      begin
+        if Assigned(FOnEnd) and (not FLoopMode) then
+        begin
+          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FTrackEndTriggered := True;
+        end;
+
+        if FLoopMode then
+        begin
+          ResetPlayback;
+          FTrackEndTriggered := False;
+        end;
+      end;
+
+    finally
+      FPositionLock.Leave;
+      if FTrackEndTriggered then
+        InternalStop(True);
+    end;
+  end;
+end;
+
+procedure TSidAudioPlayer.CheckError(Condition: Boolean; const Msg: string);
+begin
+  if Condition and Assigned(FOnError) then
+    FOnError(Self, Msg);
+end;
+
+procedure TSidAudioPlayer.InternalStop(ClearTune: Boolean);
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+      if FCurrentPlayer = Self then
+      begin
+        StopAudioStream(FStream);
+        FCurrentPlayer := nil;
+      end;
+
+      if ClearTune then
+        FreeSidData;
+
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnStop) then
+        FOnStop(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSidAudioPlayer.Play(const MusicFile: String; Track: Integer);
+begin
+  if not FileExists(MusicFile) then
+  begin
+    CheckError(True, 'File not found: ' + MusicFile);
+    Exit;
+  end;
+
+  FPositionLock.Enter;
+  try
+    // Остановка текущего воспроизведения
+    if IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Загрузка нового SID файла
+    try
+      LoadSidFile(MusicFile);
+      FCurrentTrack := Track;
+
+      // Начало воспроизведения
+      FCurrentPlayer := Self;
+      PlayAudioStream(FStream);
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    except
+      on E: Exception do
+      begin
+        CheckError(True, 'Error loading SID file: ' + E.Message);
+        InternalStop;
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSidAudioPlayer.Pause;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and not FIsPaused then
+    begin
+      PauseAudioStream(FStream);
+      FIsPaused := True;
+
+      if Assigned(FOnPause) then
+        FOnPause(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSidAudioPlayer.Resume;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and FIsPaused then
+    begin
+      ResumeAudioStream(FStream);
+      FIsPaused := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSidAudioPlayer.Stop;
+begin
+  InternalStop;
+end;
+
+procedure TSidAudioPlayer.SetPosition(PositionMs: Integer);
+begin
+  // SIDPlayFP не поддерживает точное позиционирование
+  // Можно реализовать через перезагрузку трека и пропуск времени
+  FPositionLock.Enter;
+  try
+    if FSidEngine <> nil then
+    begin
+      // Для SID файлов позиционирование ограничено
+      // Можно сбросить и пропустить некоторое количество семплов
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TSidAudioPlayer.GetPosition: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FSidEngine <> nil then
+    begin
+      // Получение текущей позиции в миллисекундах
+      Result := timeMs;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TSidAudioPlayer.GetDuration: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FSidEngine <> nil then
+    begin
+      // Для SID файлов длительность обычно фиксированная или неизвестна
+      // Можно вернуть приблизительное значение или 0
+      Result := 180000; // 3 минуты по умолчанию для SID файлов
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TSidAudioPlayer.SetLoopMode(Mode: Boolean);
+begin
+  FLoopMode := Mode;
+  // SIDPlayFP обычно имеет встроенную поддержку зацикливания
+end;
+
+function TSidAudioPlayer.GetLoopMode: Boolean;
+begin
+  Result := FLoopMode;
+end;
+
+function TSidAudioPlayer.IsPlaying: Boolean;
+begin
+  Result := (FCurrentPlayer = Self) and not FIsPaused and (FSidEngine <> nil) and isPlaying;
+end;
+
+function TSidAudioPlayer.IsPaused: Boolean;
+begin
+  Result := FIsPaused;
+end;
+
+function TSidAudioPlayer.GetCurrentTrack: Integer;
+begin
+  Result := FCurrentTrack;
+end;
+
+function TSidAudioPlayer.GetCurrentFile: String;
+begin
+  Result := FFilename;
+end;
+
+function TSidAudioPlayer.GetTrackCount: Integer;
+begin
+  Result := FTrackCount;
+end;
+
+function TSidAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
+begin
+  Result := FEqBandsDecay;
+end;
+
+// Event property getters/setters
+function TSidAudioPlayer.GetOnPlay: TPlayEvent;
+begin
+  Result := FOnPlay;
+end;
+
+function TSidAudioPlayer.GetOnPause: TPauseEvent;
+begin
+  Result := FOnPause;
+end;
+
+function TSidAudioPlayer.GetOnStop: TStopEvent;
+begin
+  Result := FOnStop;
+end;
+
+function TSidAudioPlayer.GetOnEnd: TEndEvent;
+begin
+  Result := FOnEnd;
+end;
+
+function TSidAudioPlayer.GetOnError: TErrorEvent;
+begin
+  Result := FOnError;
+end;
+
+procedure TSidAudioPlayer.SetOnPlay(AEvent: TPlayEvent);
+begin
+  FOnPlay := AEvent;
+end;
+
+procedure TSidAudioPlayer.SetOnPause(AEvent: TPauseEvent);
+begin
+  FOnPause := AEvent;
+end;
+
+procedure TSidAudioPlayer.SetOnStop(AEvent: TStopEvent);
+begin
+  FOnStop := AEvent;
+end;
+
+procedure TSidAudioPlayer.SetOnEnd(AEvent: TEndEvent);
+begin
+  FOnEnd := AEvent;
+end;
+
+procedure TSidAudioPlayer.SetOnError(AEvent: TErrorEvent);
+begin
+  FOnError := AEvent;
+end;
+
+end.

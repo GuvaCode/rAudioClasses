@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 244
+  Left = 114
   Height = 559
-  Top = 105
+  Top = 154
   Width = 1311
   Caption = 'Form1'
   ClientHeight = 559
@@ -20,9 +20,9 @@ object Form1: TForm1
     TabOrder = 0
   end
   object Button1: TButton
-    Left = 40
+    Left = 38
     Height = 25
-    Top = 27
+    Top = 16
     Width = 75
     Caption = 'Button1'
     TabOrder = 1
@@ -44,6 +44,7 @@ object Form1: TForm1
     Top = 112
     Width = 344
     Position = 0
+    OnChange = TrackBar1Change
     TabOrder = 3
   end
   object ToggleBox1: TToggleBox
@@ -64,9 +65,9 @@ object Form1: TForm1
     OnClick = Button2Click
   end
   object Button3: TButton
-    Left = 40
+    Left = 38
     Height = 25
-    Top = 64
+    Top = 80
     Width = 75
     Caption = 'Button3'
     TabOrder = 6
@@ -120,6 +121,23 @@ object Form1: TForm1
     Width = 223
     Max = 400
     TabOrder = 11
+  end
+  object Button6: TButton
+    Left = 38
+    Height = 25
+    Top = 48
+    Width = 75
+    Caption = 'Button6'
+    TabOrder = 12
+    OnClick = Button6Click
+  end
+  object TrackBar2: TTrackBar
+    Left = 120
+    Height = 37
+    Top = 4
+    Width = 100
+    Position = 0
+    TabOrder = 13
   end
   object OpenDialog1: TOpenDialog
     Left = 133

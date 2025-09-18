@@ -30,7 +30,7 @@ type
     function GetOnStop: TStopEvent;
 
     // Основные методы управления
-    procedure Play(const MusicFile: String; Track: Integer = 0); // Воспроизведение Track№ для чиптюнов которы содержат несколько треков
+    procedure Play(const MusicFile: String; Track: Integer = 1); // Воспроизведение Track№ для чиптюнов которы содержат несколько треков
     procedure Pause;
     procedure Resume;
     procedure SetOnEnd(AEvent: TEndEvent);

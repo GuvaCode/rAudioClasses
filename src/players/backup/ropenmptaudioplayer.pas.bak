@@ -1,6 +1,5 @@
 unit rOpenMptAudioPlayer;
 
-
 {$mode ObjFPC}{$H+}
 
 interface
@@ -46,10 +45,11 @@ type
     class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
     procedure InternalStop(ClearModule: Boolean = True);
     procedure CheckError(Condition: Boolean; const Msg: string);
-    procedure LoadModuleFile(const MusicFile: string);
+    function LoadModuleFile(const MusicFile: string): Boolean;
     procedure FreeModuleData;
 
     procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+    procedure InternalPlay;
 
     const
       DEFAULT_FREQ = 44100;
@@ -62,7 +62,9 @@ type
     destructor Destroy; override;
 
     // IMusicPlayer implementation
-    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Play(Track: Integer = 1);
+    function OpenFile(Filename: String): Boolean;
+    function OpenFromStream(Stream: TFileStream): Boolean;
     procedure Pause;
     procedure Resume;
     procedure Stop;
@@ -91,12 +93,6 @@ type
     procedure SetOnStop(AEvent: TStopEvent);
     procedure SetOnEnd(AEvent: TEndEvent);
     procedure SetOnError(AEvent: TErrorEvent);
-
-    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
-    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
-    property OnStop: TStopEvent read GetOnStop write SetOnStop;
-    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
-    property OnError: TErrorEvent read GetOnError write SetOnError;
   end;
 
 implementation
@@ -157,15 +153,22 @@ begin
   SetAudioStreamCallback(FStream, @AudioCallback);
 end;
 
-procedure TOpenMPTAudioPlayer.LoadModuleFile(const MusicFile: string);
+function TOpenMPTAudioPlayer.LoadModuleFile(const MusicFile: string): Boolean;
 var
   FileStream: TFileStream;
   Error: cint;
   ErrorMessage: pchar;
 begin
+  Result := False;
   FreeModuleData;
 
   try
+    if not FileExists(MusicFile) then
+    begin
+      CheckError(True, 'File not found: ' + MusicFile);
+      Exit;
+    end;
+
     FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
     try
       FFileSize := FileStream.Size;
@@ -187,18 +190,23 @@ begin
     if FOpenMPTModule = nil then
     begin
       if ErrorMessage <> nil then
-        raise Exception.Create('Failed to create OpenMPT module: ' + string(ErrorMessage))
+        CheckError(True, 'Failed to create OpenMPT module: ' + string(ErrorMessage))
       else
-        raise Exception.Create('Failed to create OpenMPT module: Error ' + IntToStr(Error));
+        CheckError(True, 'Failed to create OpenMPT module: Error ' + IntToStr(Error));
+      Exit;
     end;
 
     // Получаем длительность трека
     FDurationSeconds := openmpt_module_get_duration_seconds(FOpenMPTModule);
 
     FFilename := MusicFile;
+    Result := True;
   except
-    FreeModuleData;
-    raise;
+    on E: Exception do
+    begin
+      CheckError(True, 'Error loading module: ' + E.Message);
+      FreeModuleData;
+    end;
   end;
 end;
 
@@ -219,7 +227,7 @@ begin
 end;
 
 procedure TOpenMPTAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
-
+{$I BandAnalyzer.inc}
 end;
 
 procedure TOpenMPTAudioPlayer.ResetPlayback;
@@ -278,7 +286,8 @@ begin
 
     finally
       FPositionLock.Leave;
-      if FTrackEndTriggered then InternalStop(True);
+      if FTrackEndTriggered then
+        InternalStop(True);
     end;
   end;
 end;
@@ -293,7 +302,6 @@ procedure TOpenMPTAudioPlayer.InternalStop(ClearModule: Boolean);
 begin
   FPositionLock.Enter;
   try
-    // Проверяем, является ли этот плеер текущим и активным
     if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
     begin
       StopAudioStream(FStream);
@@ -313,44 +321,63 @@ begin
   end;
 end;
 
-procedure TOpenMPTAudioPlayer.Play(const MusicFile: String; Track: Integer);
+procedure TOpenMPTAudioPlayer.InternalPlay;
 begin
-  if not FileExists(MusicFile) then
+  FPositionLock.Enter;
+  try
+    if FOpenMPTModule = nil then
+    begin
+      CheckError(True, 'No module loaded');
+      Exit;
+    end;
+
+    // Начинаем воспроизведение
+    FCurrentPlayer := Self;
+    PlayAudioStream(FStream);
+    FIsPaused := False;
+    FTrackEndTriggered := False;
+
+    if Assigned(FOnPlay) then
+      FOnPlay(Self, FCurrentTrack);
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TOpenMPTAudioPlayer.Play(Track: Integer = 1);
+begin
+  if FOpenMPTModule = nil then
   begin
-    CheckError(True, 'File not found: ' + MusicFile);
+    CheckError(True, 'No module loaded. Call OpenFile first.');
     Exit;
   end;
 
+  FCurrentTrack := Track;
+  InternalPlay;
+end;
+
+function TOpenMPTAudioPlayer.OpenFile(Filename: String): Boolean;
+begin
+  Result := False;
   FPositionLock.Enter;
   try
     // Останавливаем текущее воспроизведение
-    // Останавливаем текущее воспроизведение только если оно активно
     if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
       InternalStop;
 
     // Загружаем новый модуль
-    try
-      LoadModuleFile(MusicFile);
-      FCurrentTrack := Track;
-
-      // Начинаем воспроизведение
-      FCurrentPlayer := Self;
-      PlayAudioStream(FStream);
-      FIsPaused := False;
-      FTrackEndTriggered := False;
-
-      if Assigned(FOnPlay) then
-        FOnPlay(Self, FCurrentTrack);
-    except
-      on E: Exception do
-      begin
-        CheckError(True, 'Error loading module: ' + E.Message);
-        InternalStop;
-      end;
-    end;
+    Result := LoadModuleFile(Filename);
   finally
     FPositionLock.Leave;
   end;
+end;
+
+function TOpenMPTAudioPlayer.OpenFromStream(Stream: TFileStream): Boolean;
+begin
+  // OpenMPT не поддерживает загрузку из TFileStream напрямую
+  // Можно было бы реализовать через временный файл, но это неэффективно
+  CheckError(True, 'Loading from stream not supported for OpenMPT format');
+  Result := False;
 end;
 
 procedure TOpenMPTAudioPlayer.Pause;
@@ -491,7 +518,7 @@ end;
 
 function TOpenMPTAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
 begin
-  Result := Self.FEqBandsDecay;
+  Result := FEqBandsDecay;
 end;
 
 // Event property getters/setters

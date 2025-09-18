@@ -1,0 +1,320 @@
+unit libsc68;
+
+{$mode objfpc}{$H+}
+{$packrecords c}
+
+interface
+
+uses
+  SysUtils, dynlibs;
+
+const
+  {$IFDEF MSWINDOWS}
+  DEFAULT_LIB_NAME = 'sc68.dll';
+  {$ELSE}
+  {$IFDEF DARWIN}
+  DEFAULT_LIB_NAME = 'libsc68.dylib';
+  {$ELSE}
+  DEFAULT_LIB_NAME = 'libsc68.so';
+  {$ENDIF}
+  {$ENDIF}
+
+type
+  Psc68 = ^Tsc68;
+  Tsc68 = record
+  end;
+
+  Tsc68Disk = Pointer;
+
+  Tsc68MsgHandler = procedure(cat: Integer; sc68: Psc68; fmt: PChar; args: Pointer); cdecl;
+
+  Tsc68InitFlags = record
+    NoLoadConfig: Boolean;
+    NoSaveConfig: Boolean;
+  end;
+
+  { Paramètres d'initialisation de l'API }
+  Tsc68Init = record
+    MsgHandler: Tsc68MsgHandler;
+    DebugClrMask: Integer;
+    DebugSetMask: Integer;
+    Argc: Integer;
+    Argv: PChar;
+    Flags: Tsc68InitFlags;
+    shared_path: PChar;
+    user_path: PChar;
+    lmusic_path: PChar;
+    rmusic_path: PChar;
+    sampling_rate: UInt16;
+  end;
+
+  init68 = ^Tsc68Init;
+
+  Tsc68Create = record
+    SamplingRate: Cardinal;
+    Name: PChar;
+    Log2Mem: Integer;
+    Emu68Debug: Integer;
+    Cookie: Pointer;
+  end;
+
+  Tsc68Tag = record
+    Key: PChar;
+    Value: PChar;
+  end;
+
+  Tsc68CInfo = record
+    Track: Cardinal;
+    TimeMs: Cardinal;
+    TimeStr: array[0..11] of Char;
+    UsesYM: Boolean;
+    UsesSTE: Boolean;
+    UsesAmiga: Boolean;
+    UsesASID: Boolean;
+    HardwareName: PChar;
+    TagCount: Integer;
+    Tags: ^Tsc68Tag;
+  end;
+
+  Tsc68MusicInfo = record
+    Tracks: Integer;
+    Track: Integer;
+    Addr: Cardinal;
+    Rate: Cardinal;
+    Replay: PChar;
+    DiskInfo: Tsc68CInfo;
+    TrackInfo: Tsc68CInfo;
+
+    Album: PChar;
+    Title: PChar;
+    Artist: PChar;
+    Format: PChar;
+    Genre: PChar;
+    Year: PChar;
+    Ripper: PChar;
+    Converter: PChar;
+    LastTag: PChar;
+  end;
+
+  Psc68MusicInfo = ^Tsc68MusicInfo;
+  Tsc68MInfo = Tsc68MusicInfo;
+
+  Tsc68Code = (
+    SC68_IDLE   = 1 shl 0,
+    SC68_CHANGE = 1 shl 1,
+    SC68_LOOP   = 1 shl 2,
+    SC68_END    = 1 shl 3,
+    SC68_SEEK   = 1 shl 4,
+    SC68_OK     = 0,
+    SC68_ERROR  = -1
+  );
+
+  Tsc68Spr = (
+    SC68_SPR_QUERY   = -1,
+    SC68_SPR_DEFAULT = 0
+  );
+
+  Tsc68Play = (
+    SC68_DSK_TRACK = 0,
+    SC68_DEF_LOOP  = 0,
+    SC68_INF_LOOP  = -1,
+    SC68_DEF_TRACK = -1,
+    SC68_CUR_TRACK = -2,
+    SC68_CUR_LOOP  = -2
+  );
+
+  Tsc68PCM = (
+    SC68_PCM_S16 = 1,
+    SC68_PCM_F32 = 2
+  );
+
+  Tsc68ASID = (
+    SC68_ASID_OFF   = 0,
+    SC68_ASID_ON    = 1,
+    SC68_ASID_FORCE = 2,
+    SC68_ASID_NO_A  = 4,
+    SC68_ASID_NO_B  = 8,
+    SC68_ASID_NO_C  = 16
+  );
+
+  Tsc68Cntl = (
+    SC68_NOP = 0,
+    SC68_GET_LAST,
+    SC68_GET_NAME,
+    SC68_GET_TRACKS,
+    SC68_GET_TRACK,
+    SC68_GET_DEFTRK,
+    SC68_GET_LOOPS,
+    SC68_GET_LOOP,
+    SC68_GET_DISK,
+    SC68_GET_SPR,
+    SC68_SET_SPR,
+    SC68_GET_LEN,
+    SC68_GET_TRKLEN,
+    SC68_GET_DSKLEN,
+    SC68_GET_ORG,
+    SC68_GET_TRKORG,
+    SC68_GET_POS,
+    SC68_GET_DSKPOS,
+    SC68_GET_PLAYPOS,
+    SC68_SET_POS,
+    SC68_GET_PCM,
+    SC68_SET_PCM,
+    SC68_CAN_ASID,
+    SC68_GET_ASID,
+    SC68_SET_ASID,
+    SC68_GET_COOKIE,
+    SC68_SET_COOKIE,
+    SC68_EMULATORS,
+    SC68_CONFIG_LOAD,
+    SC68_CONFIG_SAVE,
+    SC68_ENUM_OPT,
+    SC68_GET_OPT,
+    SC68_SET_OPT_STR,
+    SC68_SET_OPT_INT,
+    SC68_DIAL,
+    SC68_CNTL_LAST
+  );
+
+var
+  // Version functions
+  sc68_version: function: Integer; cdecl;
+  sc68_versionstr: function: PChar; cdecl;
+
+  // Initialization and shutdown
+  sc68_init: function(var init: Tsc68Init): Integer; cdecl;
+  sc68_shutdown: procedure; cdecl;
+
+  // Instance management
+  sc68_create: function(create: Tsc68Create): Pointer; cdecl;
+  sc68_destroy: procedure(sc68: Psc68); cdecl;
+
+  // Control operations
+  sc68_cntl: function(sc68: Psc68; op: Integer; args: array of const): Integer; cdecl;
+
+  // Audio processing
+  sc68_process: function(sc68: Psc68; buf: Pointer; n: pointer): integer; cdecl;
+
+  // Playback control
+  sc68_play: function(sc68: Psc68; track, loop: Integer): Integer; cdecl;
+  sc68_stop: function(sc68: Psc68): Integer; cdecl;
+
+  // Metadata and information
+  sc68_music_info: function(sc68: Psc68; info: Tsc68MusicInfo; track: Integer; disk: Tsc68Disk): Integer; cdecl;
+  sc68_tag_get: function(sc68: Psc68; tag: Tsc68Tag; track: Integer; disk: Tsc68Disk): Integer; cdecl;
+  sc68_tag: function(sc68: Psc68; key: PChar; track: Integer; disk: Tsc68Disk): PChar; cdecl;
+  sc68_tag_enum: function(sc68: Psc68; tag: Tsc68Tag; track, idx: Integer; disk: Tsc68Disk): Integer; cdecl;
+  sc68_mimetype: function: PChar; cdecl;
+
+  // File operations
+  sc68_vfs: function(uri: PChar; mode, argc: Integer; args: array of const): Pointer; cdecl;
+  sc68_is_our_uri: function(uri, exts: PChar; var is_remote: Integer): Integer; cdecl;
+
+  // Loading functions
+  sc68_load: function(sc68: Psc68; is_: Pointer): Integer; cdecl;
+  sc68_load_uri: function(sc68: Psc68; uri: PChar): Integer; cdecl;
+  sc68_load_mem: function(sc68: Psc68; buffer: Pointer; len: Integer): Integer; cdecl;
+
+  // Disk operations
+  sc68_load_disk: function(is_: Pointer): Tsc68Disk; cdecl;
+  sc68_load_disk_uri: function(uri: PChar): Tsc68Disk; cdecl;
+  sc68_disk_load_mem: function(buffer: Pointer; len: Integer): Tsc68Disk; cdecl;
+  sc68_disk_free: procedure(disk: Tsc68Disk); cdecl;
+
+  // Device management
+  sc68_open: function(sc68: Psc68; disk: Tsc68Disk): Integer; cdecl;
+  sc68_close: procedure(sc68: Psc68); cdecl;
+
+  // YM channels
+  sc68_ym_channels: function(sc68: Psc68; channels: Integer): Integer; cdecl;
+
+procedure LoadSC68Library(const LibraryName: string = DEFAULT_LIB_NAME);
+function SC68Loaded: Boolean;
+
+implementation
+
+var
+  library_handle: TLibHandle = NilHandle;
+
+procedure LoadProc(var fn_var; const fn_name: string);
+begin
+  pointer(fn_var) := GetProcedureAddress(library_handle, fn_name);
+end;
+
+procedure LoadSC68Library(const LibraryName: string);
+begin
+  if library_handle <> NilHandle then
+    Exit; // Уже загружена
+
+  library_handle := LoadLibrary(LibraryName);
+  if library_handle = NilHandle then
+    raise Exception.CreateFmt('Could not load library "%s"', [LibraryName]);
+
+  try
+    // Version functions
+    LoadProc(sc68_version, 'sc68_version');
+    LoadProc(sc68_versionstr, 'sc68_versionstr');
+
+    // Initialization and shutdown
+    LoadProc(sc68_init, 'sc68_init');
+    LoadProc(sc68_shutdown, 'sc68_shutdown');
+
+    // Instance management
+    LoadProc(sc68_create, 'sc68_create');
+    LoadProc(sc68_destroy, 'sc68_destroy');
+
+    // Control operations
+    LoadProc(sc68_cntl, 'sc68_cntl');
+
+    // Audio processing
+    LoadProc(sc68_process, 'sc68_process');
+
+    // Playback control
+    LoadProc(sc68_play, 'sc68_play');
+    LoadProc(sc68_stop, 'sc68_stop');
+
+    // Metadata and information
+    LoadProc(sc68_music_info, 'sc68_music_info');
+    LoadProc(sc68_tag_get, 'sc68_tag_get');
+    LoadProc(sc68_tag, 'sc68_tag');
+    LoadProc(sc68_tag_enum, 'sc68_tag_enum');
+    LoadProc(sc68_mimetype, 'sc68_mimetype');
+
+    // File operations
+    LoadProc(sc68_vfs, 'sc68_vfs');
+    LoadProc(sc68_is_our_uri, 'sc68_is_our_uri');
+
+    // Loading functions
+    LoadProc(sc68_load, 'sc68_load');
+    LoadProc(sc68_load_uri, 'sc68_load_uri');
+    LoadProc(sc68_load_mem, 'sc68_load_mem');
+
+    // Disk operations
+    LoadProc(sc68_load_disk, 'sc68_load_disk');
+    LoadProc(sc68_load_disk_uri, 'sc68_load_disk_uri');
+    LoadProc(sc68_disk_load_mem, 'sc68_disk_load_mem');
+    LoadProc(sc68_disk_free, 'sc68_disk_free');
+
+    // Device management
+    LoadProc(sc68_open, 'sc68_open');
+    LoadProc(sc68_close, 'sc68_close');
+
+    // YM channels
+    LoadProc(sc68_ym_channels, 'sc68_ym_channels');
+
+  except
+    UnloadLibrary(library_handle);
+    library_handle := NilHandle;
+    raise;
+  end;
+end;
+
+function SC68Loaded: Boolean;
+begin
+  Result := library_handle <> NilHandle;
+end;
+
+finalization
+  if library_handle <> NilHandle then
+    UnloadLibrary(library_handle);
+end.

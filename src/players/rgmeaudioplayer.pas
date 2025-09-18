@@ -1,0 +1,564 @@
+unit rGmeAudioPlayer;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, libgme, libraudio, CommonTypes,
+  rAudioIntf, contnrs, syncobjs, math;
+
+type
+  { TGmeAudioPlayer }
+  TGmeAudioPlayer = class(TInterfacedObject, IMusicPlayer)
+  private
+    FStream: TAudioStream;
+    FFilename: string;
+    FEmu: PMusic_Emu;
+    FTrackInfo: Pgme_info_t;
+    FIsPaused: Boolean;
+    FLoopMode: Boolean;
+    FCurrentTrack: Integer;
+    FTrackCount: Integer;
+    FPositionLock: TCriticalSection;
+    FTrackEndTriggered: Boolean;
+
+    FEqBands: TEqBands;
+    FEqBandsDecay: TEqBandsDecay;
+
+    // Event handlers
+    FOnPlay: TPlayEvent;
+    FOnPause: TPauseEvent;
+    FOnStop: TStopEvent;
+    FOnEnd: TEndEvent;
+    FOnError: TErrorEvent;
+
+    class var FPlayers: TFPHashList;
+    class var FCurrentPlayer: TGmeAudioPlayer;
+
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+
+    procedure InitializeAudioStream;
+    procedure ResetPlayback;
+    class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
+    procedure InternalStop(ClearEmu: Boolean = True);
+    procedure CheckError(Condition: Boolean; const Msg: string);
+    procedure LoadModuleFile(const MusicFile: string);
+    procedure FreeEmuData;
+    procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+    function GetCurrentTrackDuration: Integer; // Добавлено: получение длительности текущего трека
+
+    const
+      DEFAULT_FREQ = 44100;
+      DEFAULT_BITS = 16;
+      DEFAULT_CHANNELS = 2;
+      BUFFER_SIZE = 8192;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // IMusicPlayer implementation
+    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Pause;
+    procedure Resume;
+    procedure Stop;
+    procedure SetPosition(PositionMs: Integer);
+    function GetPosition: Integer;
+    function GetDuration: Integer;
+    procedure SetLoopMode(Mode: Boolean);
+    function GetLoopMode: Boolean;
+    function IsPlaying: Boolean;
+    function IsPaused: Boolean;
+    function GetCurrentTrack: Integer;
+    function GetCurrentFile: String;
+    function GetTrackCount: Integer;
+
+    // Вывод TTF
+    function GetEQBandsDecay: TEqBandsDecay;
+
+    // Event properties
+    function GetOnPlay: TPlayEvent;
+    function GetOnPause: TPauseEvent;
+    function GetOnStop: TStopEvent;
+    function GetOnEnd: TEndEvent;
+    function GetOnError: TErrorEvent;
+    procedure SetOnPlay(AEvent: TPlayEvent);
+    procedure SetOnPause(AEvent: TPauseEvent);
+    procedure SetOnStop(AEvent: TStopEvent);
+    procedure SetOnEnd(AEvent: TEndEvent);
+    procedure SetOnError(AEvent: TErrorEvent);
+
+    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
+    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
+    property OnStop: TStopEvent read GetOnStop write SetOnStop;
+    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
+    property OnError: TErrorEvent read GetOnError write SetOnError;
+  end;
+
+implementation
+
+{ TGmeAudioPlayer }
+
+class constructor TGmeAudioPlayer.ClassCreate;
+begin
+  FPlayers := TFPHashList.Create;
+  FCurrentPlayer := nil;
+end;
+
+class destructor TGmeAudioPlayer.ClassDestroy;
+begin
+  FPlayers.Free;
+end;
+
+constructor TGmeAudioPlayer.Create;
+var
+  i: Integer;
+begin
+  inherited Create;
+  FTrackEndTriggered := False;
+  FIsPaused := False;
+  FLoopMode := False;
+  FCurrentTrack := 0;
+  FTrackCount := 0;
+  FPositionLock := TCriticalSection.Create;
+  FEmu := nil;
+  FTrackInfo := nil;
+
+  for i := 0 to EQ_BANDS - 1 do
+  begin
+    FEqBands[i] := 0;
+    FEqBandsDecay[i] := 0;
+  end;
+
+  InitializeAudioStream;
+end;
+
+destructor TGmeAudioPlayer.Destroy;
+begin
+  InternalStop;
+  FreeEmuData;
+  FPositionLock.Free;
+  inherited Destroy;
+end;
+
+procedure TGmeAudioPlayer.InitializeAudioStream;
+begin
+  SetAudioStreamBufferSizeDefault(BUFFER_SIZE);
+  FStream := LoadAudioStream(DEFAULT_FREQ, DEFAULT_BITS, DEFAULT_CHANNELS);
+  if not IsAudioStreamReady(FStream) then
+    raise Exception.Create('Failed to initialize audio stream');
+
+  FPlayers.Add(IntToStr(PtrInt(Self)), Self);
+  SetAudioStreamCallback(FStream, @AudioCallback);
+end;
+
+procedure TGmeAudioPlayer.LoadModuleFile(const MusicFile: string);
+var
+  Err: gme_err_t;
+begin
+  FreeEmuData;
+
+  try
+    // Open file with GME
+    Err := gme_open_file(PAnsiChar(MusicFile), @FEmu, DEFAULT_FREQ);
+    if Err <> nil then
+      raise Exception.Create('Failed to open file: ' + string(Err));
+
+    // Get track count
+    FTrackCount := gme_track_count(FEmu) - 1;
+
+    // Get track info for current track
+    if FCurrentTrack > FTrackCount then FCurrentTrack := 0;
+    Err := gme_track_info(FEmu, @FTrackInfo, FCurrentTrack);
+
+    if Err <> nil then
+      raise Exception.Create('Failed to get track info: ' + string(Err));
+
+    // Start track
+    Err := gme_start_track(FEmu, FCurrentTrack);
+    if Err <> nil then
+      raise Exception.Create('Failed to start track: ' + string(Err));
+
+    // Set loop mode
+    if FLoopMode then
+      gme_set_fade(FEmu, -1) // Infinite playback
+    else
+      gme_set_fade(FEmu, FTrackInfo^.fade_length);
+
+    FFilename := MusicFile;
+  except
+    FreeEmuData;
+    raise;
+  end;
+end;
+
+procedure TGmeAudioPlayer.FreeEmuData;
+begin
+  if FTrackInfo <> nil then
+  begin
+    gme_free_info(FTrackInfo);
+    FTrackInfo := nil;
+  end;
+
+  if FEmu <> nil then
+  begin
+    gme_delete(FEmu);
+    FEmu := nil;
+  end;
+
+  FTrackCount := 0;
+end;
+
+function TGmeAudioPlayer.GetCurrentTrackDuration: Integer;
+var
+  TrackInfo: Pgme_info_t;
+  Err: gme_err_t;
+begin
+  Result := 0;
+
+  if FEmu = nil then
+    Exit;
+
+  FPositionLock.Enter;
+  try
+    // Получаем информацию о текущем треке
+    Err := gme_track_info(FEmu, @TrackInfo, FCurrentTrack);
+    if (Err = nil) and (TrackInfo <> nil) then
+    begin
+      // Используем play_length, который содержит длительность текущего трека
+      if TrackInfo^.play_length > 0 then
+        Result := TrackInfo^.play_length
+      else if TrackInfo^.length > 0 then
+        Result := TrackInfo^.length
+      else
+        Result := 180000; // 3 минуты по умолчанию, если длительность не указана
+
+      // Освобождаем информацию о треке
+      gme_free_info(TrackInfo);
+    end
+    else
+    begin
+      // Если не удалось получить информацию, используем значение по умолчанию
+      Result := 180000; // 3 минуты
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TGmeAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+{$I BandAnalyzer.inc}
+end;
+
+procedure TGmeAudioPlayer.ResetPlayback;
+begin
+  if FEmu <> nil then
+  begin
+    gme_seek(FEmu, 0);
+  end;
+end;
+
+class procedure TGmeAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
+var
+  Err: gme_err_t;
+begin
+  if FCurrentPlayer = nil then Exit;
+
+  with FCurrentPlayer do
+  begin
+    FPositionLock.Enter;
+    try
+      if (FEmu = nil) or FIsPaused then
+      begin
+        FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+        Exit;
+      end;
+
+      // Render audio
+      Err := gme_play(FEmu, frames * DEFAULT_CHANNELS, PSmallInt(bufferData));
+      if Err <> nil then
+      begin
+        CheckError(True, 'Audio rendering error: ' + string(Err));
+        Exit;
+      end;
+
+      // TTF analysis
+      AnalyzeAudioBuffer(bufferData, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8));
+
+      // Check if track ended
+      if gme_track_ended(FEmu) <> 0 then
+      begin
+        if Assigned(FOnEnd) and (not FLoopMode) then
+        begin
+          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FTrackEndTriggered := True;
+        end;
+
+        if FLoopMode then
+        begin
+          ResetPlayback;
+          FTrackEndTriggered := False;
+        end;
+      end;
+    finally
+      FPositionLock.Leave;
+      if FTrackEndTriggered then InternalStop(True);
+    end;
+  end;
+end;
+
+procedure TGmeAudioPlayer.CheckError(Condition: Boolean; const Msg: string);
+begin
+  if Condition and Assigned(FOnError) then
+    FOnError(Self, Msg);
+end;
+
+procedure TGmeAudioPlayer.InternalStop(ClearEmu: Boolean);
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
+    begin
+      if FCurrentPlayer = Self then
+      begin
+        StopAudioStream(FStream);
+        FCurrentPlayer := nil;
+      end;
+
+      if ClearEmu then
+        FreeEmuData;
+
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnStop) then
+        FOnStop(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TGmeAudioPlayer.Play(const MusicFile: String; Track: Integer);
+begin
+  if not FileExists(MusicFile) then
+  begin
+    CheckError(True, 'File not found: ' + MusicFile);
+    Exit;
+  end;
+
+  FPositionLock.Enter;
+  try
+    // Stop current playback
+    if IsAudioStreamPlaying(FStream) then InternalStop;
+
+    // Load new module
+    try
+      FCurrentTrack := Track;
+      LoadModuleFile(MusicFile);
+
+      // Start playback
+      FCurrentPlayer := Self;
+      PlayAudioStream(FStream);
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    except
+      on E: Exception do
+      begin
+        CheckError(True, 'Error loading module: ' + E.Message);
+        InternalStop;
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TGmeAudioPlayer.Pause;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and not FIsPaused then
+    begin
+      PauseAudioStream(FStream);
+      FIsPaused := True;
+
+      if Assigned(FOnPause) then
+        FOnPause(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TGmeAudioPlayer.Resume;
+begin
+  FPositionLock.Enter;
+  try
+    if (FCurrentPlayer = Self) and FIsPaused then
+    begin
+      ResumeAudioStream(FStream);
+      FIsPaused := False;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+procedure TGmeAudioPlayer.Stop;
+begin
+  InternalStop;
+end;
+
+procedure TGmeAudioPlayer.SetPosition(PositionMs: Integer);
+var
+  Err: gme_err_t;
+begin
+  FPositionLock.Enter;
+  try
+    if FEmu <> nil then
+    begin
+      Err := gme_seek(FEmu, PositionMs);
+      if Err <> nil then
+        CheckError(True, 'Seek error: ' + string(Err));
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TGmeAudioPlayer.GetPosition: Integer;
+begin
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if FEmu <> nil then
+      Result := gme_tell(FEmu);
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TGmeAudioPlayer.GetDuration: Integer;
+begin
+  Result := GetCurrentTrackDuration; // Используем правильный метод для получения длительности
+end;
+
+procedure TGmeAudioPlayer.SetLoopMode(Mode: Boolean);
+begin
+  FLoopMode := Mode;
+  FPositionLock.Enter;
+  try
+    if FEmu <> nil then
+    begin
+      if FLoopMode then
+        gme_set_fade(FEmu, -1) // Infinite playback
+      else
+      begin
+        // Получаем актуальную информацию о треке для установки fade
+        if FTrackInfo <> nil then
+          gme_set_fade(FEmu, FTrackInfo^.fade_length)
+        else
+          gme_set_fade(FEmu, 8000); // 8 секунд по умолчанию
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TGmeAudioPlayer.GetLoopMode: Boolean;
+begin
+  Result := FLoopMode;
+end;
+
+function TGmeAudioPlayer.IsPlaying: Boolean;
+begin
+  Result := (FCurrentPlayer = Self) and not FIsPaused and (FEmu <> nil);
+end;
+
+function TGmeAudioPlayer.IsPaused: Boolean;
+begin
+  Result := FIsPaused;
+end;
+
+function TGmeAudioPlayer.GetCurrentTrack: Integer;
+begin
+  Result := FCurrentTrack;
+end;
+
+function TGmeAudioPlayer.GetCurrentFile: String;
+begin
+  Result := FFilename;
+end;
+
+function TGmeAudioPlayer.GetTrackCount: Integer;
+begin
+  Result := FTrackCount;
+end;
+
+function TGmeAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
+begin
+  Result := FEqBandsDecay;
+end;
+
+// Event property getters/setters
+function TGmeAudioPlayer.GetOnPlay: TPlayEvent;
+begin
+  Result := FOnPlay;
+end;
+
+function TGmeAudioPlayer.GetOnPause: TPauseEvent;
+begin
+  Result := FOnPause;
+end;
+
+function TGmeAudioPlayer.GetOnStop: TStopEvent;
+begin
+  Result := FOnStop;
+end;
+
+function TGmeAudioPlayer.GetOnEnd: TEndEvent;
+begin
+  Result := FOnEnd;
+end;
+
+function TGmeAudioPlayer.GetOnError: TErrorEvent;
+begin
+  Result := FOnError;
+end;
+
+procedure TGmeAudioPlayer.SetOnPlay(AEvent: TPlayEvent);
+begin
+  FOnPlay := AEvent;
+end;
+
+procedure TGmeAudioPlayer.SetOnPause(AEvent: TPauseEvent);
+begin
+  FOnPause := AEvent;
+end;
+
+procedure TGmeAudioPlayer.SetOnStop(AEvent: TStopEvent);
+begin
+  FOnStop := AEvent;
+end;
+
+procedure TGmeAudioPlayer.SetOnEnd(AEvent: TEndEvent);
+begin
+  FOnEnd := AEvent;
+end;
+
+procedure TGmeAudioPlayer.SetOnError(AEvent: TErrorEvent);
+begin
+  FOnError := AEvent;
+end;
+
+end.

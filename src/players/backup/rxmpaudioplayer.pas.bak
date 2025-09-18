@@ -44,9 +44,10 @@ type
     class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
     procedure InternalStop(ClearModule: Boolean = True);
     procedure CheckError(Condition: Boolean; const Msg: string);
-    procedure LoadModuleFile(const MusicFile: string);
+    function LoadModuleFile(const MusicFile: string): Boolean;
     procedure FreeModuleData;
     procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+    procedure InternalPlay;
 
     const
       DEFAULT_FREQ = 44100;
@@ -59,7 +60,9 @@ type
     destructor Destroy; override;
 
     // IMusicPlayer implementation
-    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Play(Track: Integer = 1);
+    function OpenFile(Filename: String): Boolean;
+    function OpenFromStream(Stream: TFileStream): Boolean;
     procedure Pause;
     procedure Resume;
     procedure Stop;
@@ -88,12 +91,6 @@ type
     procedure SetOnStop(AEvent: TStopEvent);
     procedure SetOnEnd(AEvent: TEndEvent);
     procedure SetOnError(AEvent: TErrorEvent);
-
-    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
-    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
-    property OnStop: TStopEvent read GetOnStop write SetOnStop;
-    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
-    property OnError: TErrorEvent read GetOnError write SetOnError;
   end;
 
 implementation
@@ -129,8 +126,6 @@ begin
     FEqBandsDecay[i] := 0;
   end;
 
-
-
   FXmpContext := xmp_create_context();
   if FXmpContext = nil then
     raise Exception.Create('Failed to create XMP context');
@@ -150,50 +145,63 @@ begin
     FXmpContext := nil;
   end;
 
-
   inherited Destroy;
 end;
 
 procedure TXmpAudioPlayer.InitializeAudioStream;
 begin
   SetAudioStreamBufferSizeDefault(BUFFER_SIZE);
-
   FStream := LoadAudioStream(DEFAULT_FREQ, DEFAULT_BITS, DEFAULT_CHANNELS);
 
   if not IsAudioStreamReady(FStream) then
     raise Exception.Create('Failed to initialize audio stream');
 
   FPlayers.Add(IntToStr(PtrInt(Self)), Self);
-
   SetAudioStreamCallback(FStream, @AudioCallback);
 end;
 
-procedure TXmpAudioPlayer.LoadModuleFile(const MusicFile: string);
+function TXmpAudioPlayer.LoadModuleFile(const MusicFile: string): Boolean;
 var
   Error: Integer;
 begin
+  Result := False;
   FreeModuleData;
 
   try
+    if not FileExists(MusicFile) then
+    begin
+      CheckError(True, 'File not found: ' + MusicFile);
+      Exit;
+    end;
+
     // Загружаем модуль из файла
     Error := xmp_load_module(FXmpContext, PChar(MusicFile));
     if Error <> 0 then
-      raise Exception.Create('Failed to load XMP module: Error ' + IntToStr(Error));
+    begin
+      CheckError(True, 'Failed to load XMP module: Error ' + IntToStr(Error));
+      Exit;
+    end;
 
     // Запускаем плеер
     Error := xmp_start_player(FXmpContext, DEFAULT_FREQ, 0);
-
     if Error <> 0 then
-      raise Exception.Create('Failed to start XMP player: Error ' + IntToStr(Error));
+    begin
+      CheckError(True, 'Failed to start XMP player: Error ' + IntToStr(Error));
+      Exit;
+    end;
 
     // Получаем информацию о модуле
     xmp_get_module_info(FXmpContext, FModuleInfo);
     xmp_get_frame_info(FXmpContext, FFrameInfo);
 
     FFilename := MusicFile;
+    Result := True;
   except
-    FreeModuleData;
-    raise;
+    on E: Exception do
+    begin
+      CheckError(True, 'Error loading module: ' + E.Message);
+      FreeModuleData;
+    end;
   end;
 end;
 
@@ -208,50 +216,7 @@ begin
 end;
 
 procedure TXmpAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
-var
-  i, j, SampleCount: Integer;
-  Sample: SmallInt;
-  ChannelCount: Integer;
-  SampleValue, Energy: Double;
-  BandFactors: array[0..5] of Double = (0.1, 0.3, 0.5, 0.7, 0.9, 1.1);
-begin
-  if size = 0 then Exit;
-
-  ChannelCount := DEFAULT_CHANNELS;
-  SampleCount := size div (DEFAULT_BITS div 8) div ChannelCount;
-
-  if SampleCount = 0 then Exit;
-
-  // Анализируем каждый 10-й семпл для производительности
-  for i := 0 to SampleCount - 1 do
-  begin
-    if i mod 10 <> 0 then Continue;
-
-    Sample := PSmallInt(buffer + i * ChannelCount * (DEFAULT_BITS div 8))^;
-    SampleValue := Abs(Sample) / 32768.0;
-
-    // Распределяем энергию по бэндам с разными коэффициентами
-    for j := 0 to High(FEqBands) do
-    begin
-      Energy := SampleValue * BandFactors[j] * (1.2 - j * 0.15);
-      FEqBands[j] := FEqBands[j] + Energy * Energy;
-    end;
-  end;
-
-  // Обрабатываем бэнды
-  for j := 0 to High(FEqBands) do
-  begin
-    FEqBands[j] := Sqrt(FEqBands[j] / (SampleCount / 10));
-    FEqBands[j] := Log10(FEqBands[j] * 50 + 1) * 0.8;
-
-    if FEqBands[j] > FEqBandsDecay[j] then
-      FEqBandsDecay[j] := FEqBands[j]
-    else
-      FEqBandsDecay[j] := FEqBandsDecay[j] * (0.88 + j * 0.02);
-
-    FEqBandsDecay[j] := Min(1.0, Max(0, FEqBandsDecay[j]));
-    FEqBands[j] := 0;
-  end;
+{$I BandAnalyzer.inc}
 end;
 
 procedure TXmpAudioPlayer.ResetPlayback;
@@ -264,7 +229,7 @@ end;
 
 class procedure TXmpAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
 var
-  {%H-}SamplesRendered: Integer;
+  SamplesRendered: Integer;
 begin
   if FCurrentPlayer = nil then Exit;
 
@@ -282,8 +247,7 @@ begin
       SamplesRendered := xmp_play_buffer(
         FXmpContext,
         bufferData,
-
-       frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8),
+        frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8),
         Integer(FLoopMode)
       );
 
@@ -293,27 +257,26 @@ begin
       // Проверяем окончание трека
       xmp_get_frame_info(FXmpContext, FFrameInfo);
 
-
       if FFrameInfo.time >= FFrameInfo.total_time then
       begin
-         if Assigned(FOnEnd) and (not FLoopMode) then
-          begin
-            FOnEnd(FCurrentPlayer, FCurrentTrack, True);
-            FTrackEndTriggered := True;
-          end;
+        if Assigned(FOnEnd) and (not FLoopMode) then
+        begin
+          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FTrackEndTriggered := True;
+        end;
 
-          if FLoopMode then
-          begin
-            FTrackEndTriggered := False;
-          end;
-
+        if FLoopMode then
+        begin
+          FTrackEndTriggered := False;
+        end;
 
         ResetPlayback;
-    end;
+      end;
 
     finally
       FPositionLock.Leave;
-      if FTrackEndTriggered then InternalStop(True);
+      if FTrackEndTriggered then
+        InternalStop(True);
     end;
   end;
 end;
@@ -330,63 +293,82 @@ begin
   try
     if (FCurrentPlayer = Self) and IsAudioStreamPlaying(FStream) then
     begin
-
       if FCurrentPlayer = Self then
       begin
         StopAudioStream(FStream);
         FCurrentPlayer := nil;
-       end;
+      end;
 
       if ClearModule then
         FreeModuleData;
 
-    FIsPaused := False;
-    FTrackEndTriggered := False;
+      FIsPaused := False;
+      FTrackEndTriggered := False;
 
-    if Assigned(FOnStop) then
-      FOnStop(Self, FCurrentTrack);
-    end;//
+      if Assigned(FOnStop) then
+        FOnStop(Self, FCurrentTrack);
+    end;
   finally
     FPositionLock.Leave;
   end;
 end;
 
-procedure TXmpAudioPlayer.Play(const MusicFile: String; Track: Integer);
+procedure TXmpAudioPlayer.InternalPlay;
 begin
-  if not FileExists(MusicFile) then
-  begin
-    CheckError(True, 'File not found: ' + MusicFile);
-    Exit;
-  end;
-
   FPositionLock.Enter;
   try
-    // Останавливаем текущее воспроизведение
-    if IsAudioStreamPlaying(FStream) then InternalStop;
-
-    // Загружаем новый модуль
-    try
-      LoadModuleFile(MusicFile);
-      FCurrentTrack := Track;
-
-      // Начинаем воспроизведение
-      FCurrentPlayer := Self;
-      PlayAudioStream(FStream);
-      FIsPaused := False;
-      FTrackEndTriggered := False;
-
-      if Assigned(FOnPlay) then
-        FOnPlay(Self, FCurrentTrack);
-    except
-      on E: Exception do
-      begin
-        CheckError(True, 'Error loading module: ' + E.Message);
-        InternalStop;
-      end;
+    if FXmpContext = nil then
+    begin
+      CheckError(True, 'No module loaded');
+      Exit;
     end;
+
+    // Начинаем воспроизведение
+    FCurrentPlayer := Self;
+    PlayAudioStream(FStream);
+    FIsPaused := False;
+    FTrackEndTriggered := False;
+
+    if Assigned(FOnPlay) then
+      FOnPlay(Self, FCurrentTrack);
   finally
     FPositionLock.Leave;
   end;
+end;
+
+procedure TXmpAudioPlayer.Play(Track: Integer = 1);
+begin
+  if FXmpContext = nil then
+  begin
+    CheckError(True, 'No module loaded. Call OpenFile first.');
+    Exit;
+  end;
+
+  FCurrentTrack := Track;
+  InternalPlay;
+end;
+
+function TXmpAudioPlayer.OpenFile(Filename: String): Boolean;
+begin
+  Result := False;
+  FPositionLock.Enter;
+  try
+    // Останавливаем текущее воспроизведение
+    if IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Загружаем новый модуль
+    Result := LoadModuleFile(Filename);
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TXmpAudioPlayer.OpenFromStream(Stream: TFileStream): Boolean;
+begin
+  // XMP не поддерживает загрузку из TFileStream напрямую
+  CheckError(True, 'Loading from stream not supported for XMP format');
+  Result := False;
 end;
 
 procedure TXmpAudioPlayer.Pause;

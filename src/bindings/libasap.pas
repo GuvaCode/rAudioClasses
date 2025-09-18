@@ -10,7 +10,7 @@ uses
 
 const
   {$IFDEF MSWINDOWS}
-  DEFAULT_LIB_NAME = 'asap.dll';
+  DEFAULT_LIB_NAME = 'libasap.dll';
   {$ELSE}
   {$IFDEF DARWIN}
   DEFAULT_LIB_NAME = 'libasap.dylib';

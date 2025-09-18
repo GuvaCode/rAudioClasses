@@ -22,10 +22,12 @@ uses
 
 const
   {$ifdef linux}
-  library_name = 'libopenmpt.so.6';
+  library_name = 'libopenmpt.so.5';
   {$endif}
 
-
+  {$ifdef windows}
+  library_name = 'libopenmpt.dll';
+  {$endif}
 var
   openmpt_get_library_version : function(): cuint32; cdecl;
 

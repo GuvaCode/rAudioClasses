@@ -240,6 +240,8 @@ var
   hvl_InitSubsong : function (ht: phvl_tune; nr: cuint32): cbool; cdecl;
   hvl_LoadTune    : function (name: pchar; freq: cuint32; defstereo: cuint32): phvl_Tune; cdecl;
   hvl_FreeTune    : procedure(ht: phvl_tune); cdecl;
+  hvl_GetCurrentFrame : function(ht: phvl_tune): cuint32; cdecl;
+
 
   procedure LoadLib(const aLibName: string);
 //  function FindLibName(aLibName: string): string;
@@ -292,6 +294,9 @@ begin
   LoadLibFn(hvl_InitSubsong , 'hvl_InitSubsong');
   LoadLibFn(hvl_LoadTune    , 'hvl_LoadTune');
   LoadLibFn(hvl_FreeTune    , 'hvl_FreeTune');
+  LoadLibFn(hvl_GetCurrentFrame , 'hvl_GetCurrentFrame');
+
+
 end;
 
 initialization

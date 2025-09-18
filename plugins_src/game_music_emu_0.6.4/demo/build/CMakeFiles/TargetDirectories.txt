@@ -1,0 +1,5 @@
+/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/CMakeFiles/demo.dir
+/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/CMakeFiles/demo_mem.dir
+/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/CMakeFiles/demo_multi.dir
+/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/CMakeFiles/edit_cache.dir
+/home/vadim/Проекты/rAudioClasses/modules/game-music-emu-0.6.4/demo/build/CMakeFiles/rebuild_cache.dir

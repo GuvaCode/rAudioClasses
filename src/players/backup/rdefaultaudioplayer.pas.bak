@@ -5,7 +5,7 @@ unit rDefaultAudioPlayer;
 interface
 
 uses
-  Classes, SysUtils, libraudio_static,
+  Classes, SysUtils, libraudio,
   rAudioIntf, contnrs, syncobjs, Math;
 
 type
@@ -56,7 +56,7 @@ type
     destructor Destroy; override;
 
     // Основные методы управления
-    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Play(const MusicFile: String; Track: Integer = 1);
     procedure Pause;
     procedure Resume;
     procedure Stop;

@@ -1,0 +1,5 @@
+/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/build-windows/CMakeFiles/edit_cache.dir
+/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/build-windows/CMakeFiles/rebuild_cache.dir
+/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/build-windows/StSoundLibrary/CMakeFiles/StSoundLibrary.dir
+/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/build-windows/StSoundLibrary/CMakeFiles/edit_cache.dir
+/home/vadim/Проекты/rAudioClasses/plugins_src/StSound/build-windows/StSoundLibrary/CMakeFiles/rebuild_cache.dir

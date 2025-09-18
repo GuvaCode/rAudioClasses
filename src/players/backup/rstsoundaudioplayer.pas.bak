@@ -45,23 +45,25 @@ type
     class procedure AudioCallback(bufferData: pointer; frames: LongWord); static; cdecl;
     procedure InternalStop(ClearTune: Boolean = True);
     procedure CheckError(Condition: Boolean; const Msg: string);
-    procedure LoadModuleFile(const MusicFile: string);
+    function LoadModuleFile(const MusicFile: string): Boolean;
     procedure FreeModuleData;
-
     procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
+    procedure InternalPlay;
 
     const
       DEFAULT_FREQ = 44100;
       DEFAULT_BITS = 16;
       DEFAULT_CHANNELS = 2;
-      BUFFER_SIZE = 8192; // Размер буфера для рендеринга звука
+      BUFFER_SIZE = 8192;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     // IMusicPlayer implementation
-    procedure Play(const MusicFile: String; Track: Integer = 0);
+    procedure Play(Track: Integer = 1);
+    function OpenFile(Filename: String): Boolean;
+    function OpenFromStream(Stream: TFileStream): Boolean;
     procedure Pause;
     procedure Resume;
     procedure Stop;
@@ -90,12 +92,6 @@ type
     procedure SetOnStop(AEvent: TStopEvent);
     procedure SetOnEnd(AEvent: TEndEvent);
     procedure SetOnError(AEvent: TErrorEvent);
-
-    property OnPlay: TPlayEvent read GetOnPlay write SetOnPlay;
-    property OnPause: TPauseEvent read GetOnPause write SetOnPause;
-    property OnStop: TStopEvent read GetOnStop write SetOnStop;
-    property OnEnd: TEndEvent read GetOnEnd write SetOnEnd;
-    property OnError: TErrorEvent read GetOnError write SetOnError;
   end;
 
 implementation
@@ -155,13 +151,20 @@ begin
   SetAudioStreamCallback(FStream, @AudioCallback);
 end;
 
-procedure TStSoundAudioPlayer.LoadModuleFile(const MusicFile: string);
+function TStSoundAudioPlayer.LoadModuleFile(const MusicFile: string): Boolean;
 var
   FileStream: TFileStream;
 begin
+  Result := False;
   FreeModuleData;
 
   try
+    if not FileExists(MusicFile) then
+    begin
+      CheckError(True, 'File not found: ' + MusicFile);
+      Exit;
+    end;
+
     FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
     try
       FFileSize := FileStream.Size;
@@ -174,19 +177,29 @@ begin
     // Create StSound music object
     FStSoundMusic := ymMusicCreateWithRate(DEFAULT_FREQ);
     if FStSoundMusic = nil then
-      raise Exception.Create('Failed to create StSound music object');
+    begin
+      CheckError(True, 'Failed to create StSound music object');
+      Exit;
+    end;
 
     // Load from memory
     if not ymMusicLoadMemory(FStSoundMusic, FFileData, FFileSize) then
-      raise Exception.Create('Failed to load module: ' + string(ymMusicGetLastError(FStSoundMusic)));
+    begin
+      CheckError(True, 'Failed to load module: ' + string(ymMusicGetLastError(FStSoundMusic)));
+      Exit;
+    end;
 
     // Get music info
     ymMusicGetInfo(FStSoundMusic, @FMusicInfo);
 
     FFilename := MusicFile;
+    Result := True;
   except
-    FreeModuleData;
-    raise;
+    on E: Exception do
+    begin
+      CheckError(True, 'Error loading module: ' + E.Message);
+      FreeModuleData;
+    end;
   end;
 end;
 
@@ -272,7 +285,7 @@ end;
 
 class procedure TStSoundAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
 var
-  SamplesRendered: Integer;
+  SamplesRendered, i: Integer;
   Buffer: PSmallInt;
 begin
   if FCurrentPlayer = nil then Exit;
@@ -326,7 +339,8 @@ begin
 
     finally
       FPositionLock.Leave;
-      if FTrackEndTriggered = True then InternalStop(True);
+      if FTrackEndTriggered then
+        InternalStop(True);
     end;
   end;
 end;
@@ -363,42 +377,62 @@ begin
   end;
 end;
 
-procedure TStSoundAudioPlayer.Play(const MusicFile: String; Track: Integer);
+procedure TStSoundAudioPlayer.InternalPlay;
 begin
-  if not FileExists(MusicFile) then
-  begin
-    CheckError(True, 'File not found: ' + MusicFile);
-    Exit;
-  end;
-
   FPositionLock.Enter;
   try
-    // Stop current playback
-    if IsAudioStreamPlaying(FStream) then InternalStop;
-
-    // Load new module
-    try
-      LoadModuleFile(MusicFile);
-      FCurrentTrack := Track;
-
-      // Start playback
-      FCurrentPlayer := Self;
-      PlayAudioStream(FStream);
-      FIsPaused := False;
-      FTrackEndTriggered := False;
-
-      if Assigned(FOnPlay) then
-        FOnPlay(Self, FCurrentTrack);
-    except
-      on E: Exception do
-      begin
-        CheckError(True, 'Error loading module: ' + E.Message);
-        InternalStop;
-      end;
+    if FStSoundMusic = nil then
+    begin
+      CheckError(True, 'No module loaded');
+      Exit;
     end;
+
+    // Start playback
+    FCurrentPlayer := Self;
+    PlayAudioStream(FStream);
+    FIsPaused := False;
+    FTrackEndTriggered := False;
+
+    if Assigned(FOnPlay) then
+      FOnPlay(Self, FCurrentTrack);
   finally
     FPositionLock.Leave;
   end;
+end;
+
+procedure TStSoundAudioPlayer.Play(Track: Integer = 1);
+begin
+  if FStSoundMusic = nil then
+  begin
+    CheckError(True, 'No module loaded. Call OpenFile first.');
+    Exit;
+  end;
+
+  FCurrentTrack := Track;
+  InternalPlay;
+end;
+
+function TStSoundAudioPlayer.OpenFile(Filename: String): Boolean;
+begin
+  Result := False;
+  FPositionLock.Enter;
+  try
+    // Stop current playback
+    if IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Load new module
+    Result := LoadModuleFile(Filename);
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
+function TStSoundAudioPlayer.OpenFromStream(Stream: TFileStream): Boolean;
+begin
+  // StSound не поддерживает загрузку из TFileStream напрямую
+  CheckError(True, 'Loading from stream not supported for StSound format');
+  Result := False;
 end;
 
 procedure TStSoundAudioPlayer.Pause;
@@ -526,7 +560,7 @@ end;
 
 function TStSoundAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
 begin
-  Result := Self.FEqBandsDecay;
+  Result := FEqBandsDecay;
 end;
 
 // Event property getters/setters

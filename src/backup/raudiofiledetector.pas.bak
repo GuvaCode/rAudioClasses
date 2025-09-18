@@ -5,16 +5,17 @@ unit rAudioFileDetector;
 interface
 
 uses
-  Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp, libasap;
+  Dialogs, Classes, SysUtils, ctypes, libzxtune,{ libopenmpt,} libxmp, libasap, libgme;
 
 type
-  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP);
+  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP, ptGME);
 
 function DetectAudioFileType(const AFileName: string): TPlayerType;
 function TestZxTune(const MusicFile: string): Boolean;
-function TestOpenMPT(const MusicFile: string): Boolean;
+//function TestOpenMPT(const MusicFile: string): Boolean;
 function TestXMP(const MusicFile: string): Boolean;
 function TestASAP(const MusicFile: string): Boolean;
+function TestGME(const MusicFile: string): Boolean;
 
 implementation
 
@@ -48,6 +49,9 @@ var
   tmpExt: String;
 begin
   Result := ptUnknown;
+
+  ShowMessage('Start');
+
   if not FileExists(AFileName) then Exit;
 
   try
@@ -57,9 +61,17 @@ begin
 
     tmpExt := LowerCase(ExtractFileExt(AFileName));
 
+    // Проверка GME форматов (консольные игры)
+    if TestGME(AFileName) then
+      Exit(ptGME);
+
+
     // Проверка ASAP форматов (Atari 8-bit)
     if TestASAP(AFileName) then
       Exit(ptASAP);
+
+
+
 
     // Commodore Amiga HivelyTracker audio module .hvl
     if (Header[0] = $48) and (Header[1] = $56) and
@@ -92,8 +104,8 @@ begin
       Exit(ptXMP);
 
     // Проверка модульных форматов через OpenMPT
-    if TestOpenMPT(AFileName) then
-      Exit(ptOpenMPT);
+   // if TestOpenMPT(AFileName) then
+    //  Exit(ptOpenMPT);
 
     // Проверка WAV (RIFF формата)
     if (Header[0] = $52) and (Header[1] = $49) and
@@ -170,7 +182,7 @@ begin
       Result := False;
   end;
 end;
-
+ {
 function TestOpenMPT(const MusicFile: string): Boolean;
 var
   OpenMPTModule: Popenmpt_module;
@@ -209,10 +221,12 @@ begin
     begin
       Result := True; // Модуль успешно распознан
       openmpt_module_destroy(OpenMPTModule);
+      ShowMessage('TREUE');
     end
     else if ErrorMessage <> nil then
     begin
       // Освобождаем строку с ошибкой
+      ShowMessage('ERROT');
       openmpt_free_string(ErrorMessage);
     end;
 
@@ -223,7 +237,8 @@ begin
     on E: Exception do
       Result := False;
   end;
-end;
+end; }
+
 
 function TestXMP(const MusicFile: string): Boolean;
 var
@@ -312,7 +327,6 @@ begin
         if AsapInfo <> nil then
         begin
           Result := True; // Модуль успешно распознан
-          ASAPInfo_Delete(AsapInfo);
         end;
       end;
     finally
@@ -320,6 +334,47 @@ begin
       ASAP_Delete(AsapInstance);
       FreeMem(FileData);
     end;
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+function TestGME(const MusicFile: string): Boolean;
+var
+  Emu: PMusic_Emu;
+  FileStream: TFileStream;
+  FileData: Pointer;
+  FileSize: LongInt;
+  Err: gme_err_t;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  try
+    // Загружаем файл в память
+    FileStream := TFileStream.Create(MusicFile, fmOpenRead or fmShareDenyWrite);
+    try
+      FileSize := FileStream.Size;
+      GetMem(FileData, FileSize);
+      FileStream.ReadBuffer(FileData^, FileSize);
+    finally
+      FileStream.Free;
+    end;
+
+    // Пытаемся открыть файл через GME
+    Err := gme_open_data(FileData, FileSize, @Emu, 44100);
+    if Err = nil then
+    begin
+      Result := True; // Файл успешно распознан GME
+      gme_delete(Emu);
+    end;
+
+    // Освобождаем данные файла
+    FreeMem(FileData);
 
   except
     on E: Exception do

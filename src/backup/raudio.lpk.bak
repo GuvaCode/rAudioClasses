@@ -32,6 +32,30 @@
         <Filename Value="players/rasapaudioplayer.pas"/>
         <UnitName Value="rAsapAudioPlayer"/>
       </Item>
+      <Item>
+        <Filename Value="players/rhivelyaudioplayer.pas"/>
+        <UnitName Value="rHivelyAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/ropenmptaudioplayer.pas"/>
+        <UnitName Value="rOpenMptAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rstsoundaudioplayer.pas"/>
+        <UnitName Value="rStSoundAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rxmpaudioplayer.pas"/>
+        <UnitName Value="rXmpAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rzxtuneaudioplayer.pas"/>
+        <UnitName Value="rZxTuneAudioPlayer"/>
+      </Item>
+      <Item>
+        <Filename Value="players/rgmeaudioplayer.pas"/>
+        <UnitName Value="rGmeAudioPlayer"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>

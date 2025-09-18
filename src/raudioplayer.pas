@@ -14,7 +14,8 @@ uses
   rZxTuneAudioPlayer,
   rOpenMptAudioPlayer,
   rXmpAudioplayer,
-  rStSoundAudioPlayer;
+  rStSoundAudioPlayer,
+  rGmeAudioPlayer;
 
 type
   TModuleVisble = record
@@ -34,6 +35,7 @@ type
     FTrackLoop: Boolean;
     FCurrentTrack: Integer;
     FCurrentFile: String;
+    FTrackCount: Integer;
     FIsPlaying: Boolean;
     FIsPaused: Boolean;
 
@@ -56,7 +58,12 @@ type
     FXmpPlayer      :IMusicPlayer;
     FStSoundPlayer  :IMusicPlayer;
     FAsapPlayer     :IMusicPlayer;
+    FSc68Player     :IMusicPlayer;
+    FSidPlayer      :IMusicPlayer;
+    FGMEPlayer      :IMusicPlayer;
     FCurrentPlayer  :IMusicPlayer;
+    // Тип
+    FPlayerEngine: TPlayerType;
 
     procedure InitializePlayers;
 
@@ -96,9 +103,14 @@ type
     // Информация о треке
     function GetCurrentTrack: Integer;
     function GetCurrentFile: String;
-
+    function GetTrackCount: Integer;
     // Вывод TTF
     function GetEQBandsDecay: TEqBandsDecay;
+
+    //
+    function GetCurrentEngine: String;
+
+
 
     // События
     property OnPlay: TPlayEvent read FOnPlay write SetOnPlay;
@@ -114,7 +126,7 @@ uses libhvl,
      libopenmpt,
      libxmp,
      libstsoundlibrary,
-     libAsap;
+     libAsap, libgme;
 
 { TrAudioPlayer }
 
@@ -129,6 +141,7 @@ begin
   libxmp.LoadLib(FindLibName(libxmp.XMP_LIB_NAME));
   libstsoundlibrary.LoadLib(FindLibName(libstsoundlibrary.library_name));
   libasap.LoadASAPLibrary(FindLibName(libasap.DEFAULT_LIB_NAME));
+  libgme.LoadLib(FindLibName(libgme.library_name));
   InitAudioDevice;
 
   // Инициализируем плееры
@@ -138,6 +151,7 @@ begin
   FCurrentTrack := -1;
   FIsPlaying := False;
   FIsPaused := False;
+  FPlayerEngine := ptUnknown;
 end;
 
 destructor TrAudioPlayer.Destroy;
@@ -147,19 +161,20 @@ begin
 end;
 
 procedure TrAudioPlayer.Play(const MusicFile: String; Track: Integer);
-var PlayerType: TPlayerType;
+
 begin
-  PlayerType := DetectAudioFileType(MusicFile);
+  FPlayerEngine := DetectAudioFileType(MusicFile);
 
   FCurrentPlayer.Stop;
-  case PlayerType of
+  case FPlayerEngine of
     ptUnknown .. ptDefault: FCurrentPlayer := FDefaultPlayer; // По умолчанию
-    ptZxTune:  FCurrentPlayer := FZxTunePlayer;
+    ptZxTune:  FCurrentPlayer := FZxTunePlayer;  // ZXtune
     ptHively:  FCurrentPlayer := FHivelyPlayer;
     ptOpenMPT: FCurrentPlayer := FOpenMptPlayer;
     ptXmp:     FCurrentPlayer := FXmpPlayer;
     ptStSound: FCurrentPlayer := FStSoundPlayer;
     ptASAP:    FCurrentPlayer := FAsapPlayer;
+    ptGME:     FCurrentPlayer := FGMEPlayer;
   end;
 
   if Assigned(FCurrentPlayer) then
@@ -268,6 +283,7 @@ begin
   FOpenMptPlayer.OnEnd := @EndHandleEvent;
   FOpenMptPlayer.OnError := @ErrorHandleEvent;
 
+
   FXmpPlayer := TXmpAudioPlayer.Create;
   FXmpPlayer.OnPlay := @PlayHandleEvent;
   FXmpPlayer.OnStop := @StopHandleEvent;
@@ -288,6 +304,13 @@ begin
   FAsapPlayer.OnPause := @PauseHandleEvent;
   FAsapPlayer.OnEnd := @EndHandleEvent;
   FAsapPlayer.OnError := @ErrorHandleEvent;
+
+  FGMEPlayer := TGMEAudioPlayer.Create;
+  FGMEPlayer.OnPlay := @PlayHandleEvent;
+  FGMEPlayer.OnStop := @StopHandleEvent;
+  FGMEPlayer.OnPause := @PauseHandleEvent;
+  FGMEPlayer.OnEnd := @EndHandleEvent;
+  FGMEPlayer.OnError := @ErrorHandleEvent;
 
   FCurrentPlayer := FDefaultPlayer; // По умолчанию
 end;
@@ -375,12 +398,22 @@ end;
 
 function TrAudioPlayer.GetCurrentTrack: Integer;
 begin
-  Result := FCurrentTrack;
+  //Result := FCurrentTrack;
+  if Assigned(FCurrentPlayer) then
+  Result := FCurrentPlayer.GetCurrentTrack else
 end;
 
 function TrAudioPlayer.GetCurrentFile: String;
 begin
   Result := FCurrentFile;
+end;
+
+function TrAudioPlayer.GetTrackCount: Integer;
+begin
+  if Assigned(FCurrentPlayer) then
+    Result := FCurrentPlayer.GetTrackCount else
+     Result := 0;
+// Result := FTrackCount;
 end;
 
 function TrAudioPlayer.GetEQBandsDecay: TEqBandsDecay;
@@ -389,6 +422,23 @@ begin
     Result := FCurrentPlayer.GetEQBandsDecay
   else
     FillChar(Result, SizeOf(TEqBandsDecay), 0);
+end;
+
+function TrAudioPlayer.GetCurrentEngine: String;
+begin
+  case FPlayerEngine of
+    ptUnknown:  Result := 'Unknown or unsupported audio format';
+    ptDefault:  Result := 'Default audio player (raylib)';
+    ptZxTune:   Result := 'ZXtune - ZX Spectrum chiptune player';
+    ptHively:   Result := 'Hively - AHX/HVL tracker format player';
+    ptOpenMPT:  Result := 'OpenMPT - Multi-platform tracker module player';
+    ptXmp:      Result := 'XMP - Extended Module Player for tracked music';
+    ptStSound:  Result := 'StSound - YM music chip emulator (Atari ST)';
+    ptASAP:     Result := 'ASAP - Another Slight Atari Player';
+    ptGME:      Result := 'Game Music Engine - Video game music emulator';
+  else
+    Result := 'Unknown player engine';
+  end;
 end;
 
 

@@ -1,0 +1,41 @@
+
+temp/*.o
+temp/*.ppu
+temp/*.a
+temp/*.compiled
+temp/
+
+binary/*
+!binary/resources/
+
+!libs/x86_64-linux/
+!libs/x86_64-windows/
+!libs/x86_32-windows/
+!libs/x86_32-linux/
+
+
+# other git repo
+build_linux
+build64
+build32
+binding/backup
+*.bak
+# macos
+.DS_Store
+#*.dylib
+
+zxtune-r4310.tar
+
+
+# laz
+backup/
+
+*.bak
+*.o
+#examples/
+lib/
+templates/standard_game/
+*.lps
+
+# GNU+Linux
+# *.so
