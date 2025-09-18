@@ -1,0 +1,21 @@
+
+temp/*.o
+temp/*.ppu
+temp/*.a
+temp/*.compiled
+temp/
+
+test
+
+
+
+# laz
+backup/
+
+
+#examples/
+lib/
+templates/standard_game/
+*.lps
+
+
