@@ -5,7 +5,7 @@ temp/*.a
 temp/*.compiled
 temp/
 
-test
+test/
 
 
 
