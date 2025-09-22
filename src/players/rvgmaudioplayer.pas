@@ -5,7 +5,7 @@ unit rVgmAudioPlayer;
 interface
 
 uses
-  Classes, SysUtils, libvgmplay, libraudio, CommonTypes,
+  Classes, SysUtils, libvgmplay, libraudio,
   rAudioIntf, contnrs, syncobjs, math;
 
 type
@@ -47,13 +47,13 @@ type
     procedure LoadVGMFile(const MusicFile: string);
     procedure FreeVGMData;
     procedure AnalyzeAudioBuffer(buffer: PByte; size: Integer);
-    function GetCurrentTrackDuration: Integer;
+    function IsPlaybackFinished: Boolean;
 
     const
       DEFAULT_FREQ = 44100;
       DEFAULT_BITS = 16;
       DEFAULT_CHANNELS = 2;
-      BUFFER_SIZE = 8192;
+      BUFFER_SIZE = 8192 * 2;
 
   public
     constructor Create;
@@ -107,8 +107,8 @@ begin
   FCurrentPlayer := nil;
 
   // Загружаем библиотеку VGMPlay при первом создании плеера
-  if not VGMLoaded then
-    LoadVGMLibrary;
+  //if not VGMLoaded then
+  //  LoadVGMLibrary;
 end;
 
 class destructor TVgmAudioPlayer.ClassDestroy;
@@ -158,38 +158,47 @@ begin
 
   FPlayers.Add(IntToStr(PtrInt(Self)), Self);
   SetAudioStreamCallback(FStream, @AudioCallback);
+
+
 end;
 
 procedure TVgmAudioPlayer.LoadVGMFile(const MusicFile: string);
 var
-  FileNameW: WideString;
+  FileName: String;
   ResultCode: Integer;
 begin
-  FreeVGMData;
-
+    FreeVGMData;
+      // Инициализируем воспроизведение
+    VGMPlay_Init;
+    VGMPlay_Init2;
   try
     // Проверяем, загружена ли библиотека VGMPlay
     if not VGMLoaded then
       raise Exception.Create('VGMPlay library not loaded');
 
     // Открываем VGM файл
-    FileNameW := UTF8Decode(MusicFile);
-    if not OpenVGMFileW(PWideChar(FileNameW)) then
+    FileName := MusicFile;
+    if not OpenVGMFile(PChar(FileName)) then
       raise Exception.Create('Failed to open VGM file');
 
     // Получаем информацию о файле
-    ResultCode := GetVGMFileInfoW(PWideChar(FileNameW), @FVGMHeader, FVGMTag);
-    if ResultCode = 0 then
-      raise Exception.Create('Failed to get VGM file info');
 
-    // Инициализируем воспроизведение
-    VGMPlay_Init;
+  //  if ResultCode = 0 then
+   //   raise Exception.Create('Failed to get VGM file info');
+
 
     // Устанавливаем режим зацикливания
-    if FLoopMode then
-      RefreshPlaybackOptions; // VGMPlay автоматически обрабатывает зацикливание
+   if FLoopMode then
+     RefreshPlaybackOptions; // VGMPlay автоматически обрабатывает зацикливание
 
     FFilename := MusicFile;
+    PlayVGM();
+    ResultCode := 0;
+
+
+    ResultCode := GetVGMFileInfo(PChar(FileName), @FVGMHeader, FVGMTag);
+
+
   except
     FreeVGMData;
     raise;
@@ -202,40 +211,51 @@ begin
   begin
     StopVGM;
     CloseVGMFile;
-    VGMPlay_Deinit;
+
 
     // Освобождаем GD3 тег, если он был выделен
     if FVGMTag.fccGD3 = FCC_GD3 then
       FreeGD3Tag(@FVGMTag);
+
+    VGMPlay_Deinit;
+    sleep(50);
   end;
 
   FillChar(FVGMHeader, SizeOf(VGM_HEADER), 0);
   FillChar(FVGMTag, SizeOf(VGM_TAG), 0);
-  FTrackCount := 1;
+  FTrackCount := 0;
 end;
 
-function TVgmAudioPlayer.GetCurrentTrackDuration: Integer;
-begin
-  Result := 0;
 
-  if FVGMHeader.fccVGM = FCC_VGM then
-  begin
-    // Преобразуем количество сэмплов в миллисекунды
-    if FVGMHeader.lngRate > 0 then
-      Result := Round((FVGMHeader.lngTotalSamples / FVGMHeader.lngRate) * 1000)
-    else if FVGMHeader.lngHzPSG > 0 then
-      Result := Round((FVGMHeader.lngTotalSamples / FVGMHeader.lngHzPSG) * 1000)
-    else
-      Result := 180000; // 3 минуты по умолчанию
-  end
-  else
-  begin
-    Result := 180000; // 3 минуты по умолчанию
-  end;
-end;
 
 procedure TVgmAudioPlayer.AnalyzeAudioBuffer(buffer: PByte; size: Integer);
 {$I BandAnalyzer.inc}
+end;
+
+function TVgmAudioPlayer.IsPlaybackFinished: Boolean;
+var
+  CurrentPos, DataLength: UInt32;
+  SamplesPlayed, TotalSamples: UInt32;
+begin
+  Result := False;
+
+  if not VGMLoaded then Exit(True);
+
+  // Проверка 1: через флаг завершения библиотеки
+  if IsVGMPlayEnded() then Exit(True);
+
+  // Проверка 2: позиция в данных
+  CurrentPos := GetVGMPos();
+  DataLength := GetVGMDataLen();
+  if CurrentPos >= DataLength then Exit(True);
+
+  // Проверка 3: сэмплы
+  SamplesPlayed := GetVGMSamplesPlayed();
+  TotalSamples := GetVGMTotalSamples();
+  if (TotalSamples > 0) and (SamplesPlayed >= TotalSamples) then Exit(True);
+
+  // Проверка 4: fadeout завершен
+  if (IsFadePlay()) and (GetMasterVolume() <= 0.0) then Exit(True); // Нужно получить MasterVol из библиотеки
 end;
 
 procedure TVgmAudioPlayer.ResetPlayback;
@@ -249,28 +269,33 @@ end;
 class procedure TVgmAudioPlayer.AudioCallback(bufferData: pointer; frames: LongWord); cdecl;
 var
   BytesRendered: Integer;
+  LocalPlayer: TVgmAudioPlayer;
+  ShouldStop: Boolean;
 begin
   if FCurrentPlayer = nil then Exit;
 
-  with FCurrentPlayer do
+  LocalPlayer := FCurrentPlayer;
+  ShouldStop := False;
+
+  with LocalPlayer do
   begin
     FPositionLock.Enter;
     try
-      if not VGMLoaded or FIsPaused then
+      {if not VGMLoaded or FIsPaused then
       begin
         FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
         Exit;
-      end;
+      end;}
 
       // Рендерим аудио через VGMPlay
-      BytesRendered := FillBuffer(bufferData, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8));
+      BytesRendered := FillBuffer(bufferData, frames);
 
-      if BytesRendered <= 0 then
+      if (IsPlaybackFinished) then
       begin
         // Конец трека или ошибка
-        if Assigned(FOnEnd) and (not FLoopMode) then
+        if Assigned(FOnEnd) and (not FLoopMode)  then
         begin
-          FOnEnd(FCurrentPlayer, FCurrentTrack, True);
+          FOnEnd(LocalPlayer, FCurrentTrack, True);
           FTrackEndTriggered := True;
         end;
 
@@ -282,6 +307,7 @@ begin
         else
         begin
           FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
+          ShouldStop := FTrackEndTriggered;
         end;
       end
       else
@@ -291,10 +317,18 @@ begin
       end;
     finally
       FPositionLock.Leave;
-      if FTrackEndTriggered then InternalStop(True);
     end;
+
+    // Вызов остановки ВНЕ блокировки
+    if ShouldStop then
+      InternalStop(True);
   end;
 end;
+
+
+
+
+
 
 procedure TVgmAudioPlayer.CheckError(Condition: Boolean; const Msg: string);
 begin
@@ -407,21 +441,19 @@ end;
 
 procedure TVgmAudioPlayer.SetPosition(PositionMs: Integer);
 var
-  Samples: Int32;
+  Samples: UInt32;
+  SampleRate: UInt32;
 begin
   FPositionLock.Enter;
   try
     if VGMLoaded then
     begin
-      // Преобразуем миллисекунды в сэмплы
-      if FVGMHeader.lngRate > 0 then
-        Samples := Round((PositionMs / 1000) * FVGMHeader.lngRate)
-      else if FVGMHeader.lngHzPSG > 0 then
-        Samples := Round((PositionMs / 1000) * FVGMHeader.lngHzPSG)
-      else
-        Samples := Round((PositionMs / 1000) * 44100); // По умолчанию 44.1 kHz
-
-      SeekVGM(False, Samples);
+      SampleRate := GetVGMSampleRate();
+      if SampleRate > 0 then
+      begin
+        Samples := Round((PositionMs / 1000) * SampleRate);
+        SeekVGM(False, Samples);
+      end;
     end;
   finally
     FPositionLock.Leave;
@@ -430,18 +462,15 @@ end;
 
 function TVgmAudioPlayer.GetPosition: Integer;
 var
-  Samples: Integer;
+  Samples: UInt32;
 begin
   Result := 0;
   FPositionLock.Enter;
   try
-    if VGMLoaded and (FVGMHeader.lngRate > 0) then
+    if VGMLoaded then
     begin
-      // Здесь нужно получить текущую позицию в сэмплах из VGMPlay
-      // Это упрощенная реализация - в реальности нужно использовать
-      // внутренние функции VGMPlay для получения позиции
-      Samples := 0; // Заглушка - нужно реализовать получение позиции
-      Result := Round((Samples / FVGMHeader.lngRate) * 1000);
+      Samples := GetVGMSamplesPlayed();
+      Result := Round((Samples / GetVGMSampleRate()) * 1000);
     end;
   finally
     FPositionLock.Leave;
@@ -449,8 +478,24 @@ begin
 end;
 
 function TVgmAudioPlayer.GetDuration: Integer;
+var
+  TotalSamples, SampleRate: UInt32;
 begin
-  Result := GetCurrentTrackDuration;
+  Result := 0;
+  FPositionLock.Enter;
+  try
+    if VGMLoaded then
+    begin
+      TotalSamples := GetVGMTotalSamples();
+      SampleRate := GetVGMSampleRate();
+      if SampleRate > 0 then
+        Result := Round((TotalSamples / SampleRate) * 1000)
+      else
+        Result := 180000; // 3 минуты по умолчанию
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
 end;
 
 procedure TVgmAudioPlayer.SetLoopMode(Mode: Boolean);

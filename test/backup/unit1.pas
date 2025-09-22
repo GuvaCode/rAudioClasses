@@ -30,6 +30,7 @@ type
     Timer2: TTimer;
     ToggleBox1: TToggleBox;
     TrackBar1: TTrackBar;
+    TrackBar2: TTrackBar;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -44,6 +45,7 @@ type
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
     procedure TrackBar1Change(Sender: TObject);
+    procedure TrackBar2Change(Sender: TObject);
   private
 
   public
@@ -215,14 +217,29 @@ begin
   Player.SetPosition(TrackBar1.Position);
 end;
 
+procedure TForm1.TrackBar2Change(Sender: TObject);
+begin
+
+ Player.Play(OpenDialog1.FileName,TrackBar2.Position);
+ Player.SetLoopMode(true); // Установить режим перед воспроизведением
+ ProgressBar1.Max := Player.GetDuration;
+ TrackBar1.Max := Player.GetDuration;
+ TrackBar2.Max := Player.GetTrackCount;
+ Memo1.Lines.Add('Current track: ' +  inttostr(Player.GetCurrentTrack));
+ Memo1.Lines.Add('Track count: ' +  inttostr(Player.GetTrackCount));
+ Memo1.Lines.Add(Player.GetCurrentEngine);
+
+end;
+
 procedure TForm1.Button1Click(Sender: TObject);
 begin
 if openDialog1.Execute then
 begin
- Player.Play(OpenDialog1.FileName,6);
+ Player.Play(OpenDialog1.FileName,0);
  Player.SetLoopMode(true); // Установить режим перед воспроизведением
  ProgressBar1.Max := Player.GetDuration;
  TrackBar1.Max := Player.GetDuration;
+ TrackBar2.Max := Player.GetTrackCount;
  Memo1.Lines.Add('Current track: ' +  inttostr(Player.GetCurrentTrack));
  Memo1.Lines.Add('Track count: ' +  inttostr(Player.GetTrackCount));
  Memo1.Lines.Add(Player.GetCurrentEngine);

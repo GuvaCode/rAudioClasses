@@ -15,7 +15,8 @@ uses
   rOpenMptAudioPlayer,
   rXmpAudioplayer,
   rStSoundAudioPlayer,
-  rGmeAudioPlayer;
+  rGmeAudioPlayer,
+  rVgmAudioPlayer;
 
 type
   TModuleVisble = record
@@ -61,6 +62,7 @@ type
     FSc68Player     :IMusicPlayer;
     FSidPlayer      :IMusicPlayer;
     FGMEPlayer      :IMusicPlayer;
+    FVGMPlayer      :IMusicPlayer;
     FCurrentPlayer  :IMusicPlayer;
     // Тип
     FPlayerEngine: TPlayerType;
@@ -126,7 +128,7 @@ uses libhvl,
      libopenmpt,
      libxmp,
      libstsoundlibrary,
-     libAsap, libgme;
+     libAsap, libgme, libvgmplay;
 
 { TrAudioPlayer }
 
@@ -142,6 +144,7 @@ begin
   libstsoundlibrary.LoadLib(FindLibName(libstsoundlibrary.library_name));
   libasap.LoadASAPLibrary(FindLibName(libasap.DEFAULT_LIB_NAME));
   libgme.LoadLib(FindLibName(libgme.library_name));
+  libvgmplay.LoadVGMLibrary(FindLibName(libvgmplay.VGMLIB_NAME));
   InitAudioDevice;
 
   // Инициализируем плееры
@@ -175,6 +178,7 @@ begin
     ptStSound: FCurrentPlayer := FStSoundPlayer;
     ptASAP:    FCurrentPlayer := FAsapPlayer;
     ptGME:     FCurrentPlayer := FGMEPlayer;
+    ptVGM:     FCUrrentPlayer := FVGMPlayer;
   end;
 
   if Assigned(FCurrentPlayer) then
@@ -312,6 +316,14 @@ begin
   FGMEPlayer.OnEnd := @EndHandleEvent;
   FGMEPlayer.OnError := @ErrorHandleEvent;
 
+  FVGMPlayer := TVGMAudioPlayer.Create;
+  FVGMPlayer.OnPlay := @PlayHandleEvent;
+  FVGMPlayer.OnStop := @StopHandleEvent;
+  FVGMPlayer.OnPause := @PauseHandleEvent;
+  FVGMPlayer.OnEnd := @EndHandleEvent;
+  FVGMPlayer.OnError := @ErrorHandleEvent;
+
+
   FCurrentPlayer := FDefaultPlayer; // По умолчанию
 end;
 
@@ -436,6 +448,7 @@ begin
     ptStSound:  Result := 'StSound - YM music chip emulator (Atari ST)';
     ptASAP:     Result := 'ASAP - Another Slight Atari Player';
     ptGME:      Result := 'Game Music Engine - Video game music emulator';
+    ptVGM:      Result := 'VIDEO Game Music player';
   else
     Result := 'Unknown player engine';
   end;

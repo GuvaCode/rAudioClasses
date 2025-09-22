@@ -8,7 +8,7 @@ uses
   Dialogs, Classes, SysUtils, ctypes, libzxtune, libopenmpt, libxmp, libasap, libgme;
 
 type
-  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP, ptGME);
+  TPlayerType = (ptUnknown, ptDefault, ptZxTune, ptHively, ptOpenMPT, ptXMP, ptStSound, ptASAP, ptGME, ptVGM);
 
 function DetectAudioFileType(const AFileName: string): TPlayerType;
 function TestZxTune(const MusicFile: string): Boolean;
@@ -49,8 +49,8 @@ var
   tmpExt: String;
 begin
   Result := ptUnknown;
+  Exit(ptVGM);
 
-  ShowMessage('Start');
 
   if not FileExists(AFileName) then Exit;
 
@@ -60,6 +60,11 @@ begin
     if Length(Header) < 20 then Exit;
 
     tmpExt := LowerCase(ExtractFileExt(AFileName));
+
+    // Проверка модульных форматов через OpenMPT
+  if TestOpenMPT(AFileName) then
+      Exit(ptOpenMPT);
+
 
     // Проверка GME форматов (консольные игры)
     if TestGME(AFileName) then
@@ -71,6 +76,13 @@ begin
       Exit(ptASAP);
 
 
+    // Проверка ZX Spectrum модулей через ZXTune
+    if TestZxTune(AFileName) then
+     Exit(ptZxTune);
+
+    // Проверка модульных форматов через XMP
+    if TestXMP(AFileName) then
+      Exit(ptXMP);
 
 
     // Commodore Amiga HivelyTracker audio module .hvl
@@ -94,18 +106,6 @@ begin
          if (tmpExt = '.ym') or (tmpExt = '.ymf') or (tmpExt = '.ymz') then
          Exit(ptStSound);
        end;
-
-    // Проверка ZX Spectrum модулей через ZXTune
-    if TestZxTune(AFileName) then
-     Exit(ptZxTune);
-
-    // Проверка модульных форматов через XMP
-    if TestXMP(AFileName) then
-      Exit(ptXMP);
-
-    // Проверка модульных форматов через OpenMPT
-   // if TestOpenMPT(AFileName) then
-    //  Exit(ptOpenMPT);
 
     // Проверка WAV (RIFF формата)
     if (Header[0] = $52) and (Header[1] = $49) and
@@ -221,12 +221,10 @@ begin
     begin
       Result := True; // Модуль успешно распознан
       openmpt_module_destroy(OpenMPTModule);
-      ShowMessage('TREUE');
     end
     else if ErrorMessage <> nil then
     begin
       // Освобождаем строку с ошибкой
-      ShowMessage('ERROT');
       openmpt_free_string(ErrorMessage);
     end;
 

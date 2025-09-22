@@ -22,7 +22,7 @@ uses
 
 const
   {$ifdef linux}
-  library_name = 'libopenmpt.so.5';
+  library_name = 'libopenmpt.so.6';
   {$endif}
 
   {$ifdef windows}

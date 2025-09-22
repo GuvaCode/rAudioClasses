@@ -5,7 +5,7 @@ unit rZxTuneAudioPlayer;
 interface
 
 uses
-  Classes, SysUtils, libZxTune, libraudio, CommonTypes,
+  Classes, SysUtils, libZxTune, libraudio,
   rAudioIntf, contnrs, syncobjs, math;
 
 type
@@ -391,7 +391,7 @@ begin
       FIsPaused := False;
       FTrackEndTriggered := False;
 
-      {
+
       Success := ZXTune_GetModuleAttribute(FZxTuneModule, 'Type', @SuccesBuffer[0], SizeOf(SuccesBuffer));
       WriteLn('Module type: ', string(SuccesBuffer));
 
@@ -400,7 +400,7 @@ begin
 
       Success := ZXTune_GetModuleAttribute(FZxTuneModule, 'Author', @SuccesBuffer[0], SizeOf(SuccesBuffer));
       WriteLn('Module author: ', string(SuccesBuffer));
-      }
+
 
       if Assigned(FOnPlay) then
         FOnPlay(Self, FCurrentTrack);

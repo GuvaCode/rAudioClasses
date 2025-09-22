@@ -12,7 +12,7 @@ uses
 
 const
   {$ifdef linux}
-      VGMLIB_NAME = 'libvgm.so';
+      VGMLIB_NAME = 'libvgmplaylegacy.so';
   {$endif}
     {$ifdef windows}
       VGMLIB_NAME = 'libvgm.dll';
@@ -175,7 +175,7 @@ var
   // Работа с файлами
   OpenVGMFile: function(fname: PChar): Boolean; cdecl;
   CloseVGMFile: procedure; cdecl;
-  OpenVGMFileW: function(const FileName: PWideChar): Boolean; cdecl;
+  //OpenVGMFileW: function(const FileName: PWideChar): Boolean; cdecl;
 
   // Буферизация звука
   FillBuffer: function(buff: Pointer; buffsize: Integer): Integer; cdecl;
@@ -194,11 +194,12 @@ var
 
   // Работа с метаданными
   GetGZFileLength: function(const FileName: PChar): UInt32; cdecl;
-  GetGZFileLengthW: function(const FileName: PWideChar): UInt32; cdecl;
+//  GetGZFileLengthW: function(const FileName: PWideChar): UInt32; cdecl;
   FreeGD3Tag: procedure(TagData: Pointer); cdecl;
-  ReadGD3Tag: function(FileName: PChar; GD3Offset: UINT32; RetGD3Tag: VGM_TAG): Integer; cdecl;
+  //ReadGD3Tag: function(FileName: PChar; GD3Offset: UINT32; RetGD3Tag: VGM_TAG): Integer; cdecl;
 
   // Вспомогательные функции
+
   CalcSampleMSec: function(Value: UInt64; Mode: UInt8): UInt32; cdecl;
   CalcSampleMSecExt: function(Value: UInt64; Mode: UInt8; FileHead: Pointer): UInt32; cdecl;
   GetChipName: function(ChipID: UInt8): PChar; cdecl;
@@ -207,21 +208,23 @@ var
 
   // Получение информации о файле
   GetVGMFileInfo: function(const FileName: PChar; RetVGMHead: PVGM_HEADER; RetGD3Tag: VGM_TAG): UInt32; cdecl;
-  GetVGMFileInfoW: function(const FileName: PWideChar; RetVGMHead: PVGM_HEADER; RetGD3Tag: VGM_TAG): UInt32; cdecl;
-  ReadVGMHeader: procedure(FileName: PChar; var RetVGMHead: VGM_HEADER); cdecl;
 
   // Конвертация сэмплов
   SampleVGM2Playback: function(SampleVal: Int32): Int32; cdecl;
   SamplePlayback2VGM: function(SampleVal: Int32): Int32; cdecl;
 
-  // Расширенные данные чипов
-  ReadChipExtraData32: procedure(StartOffset: UINT32; var ChpExtra: VGMX_CHP_EXTRA32); cdecl;
-  ReadChipExtraData16: procedure(StartOffset: UINT32; var ChpExtra: VGMX_CHP_EXTRA16); cdecl;
-  ChangeChipSampleRate: procedure(DataPtr: Pointer; NewSmplRate: UINT32); cdecl;
-  GeneralChipLists: procedure; cdecl;
+  GetVGMSamplesPlayed: function: UInt32; cdecl;
+  GetVGMTotalSamples: function: UInt32; cdecl;
+  GetVGMSampleRate: function: UInt32; cdecl;
 
-  // Отладочные функции
-  ShowVGMTag: procedure; cdecl;
+  IsVGMPlayEnded: function: boolean; cdecl;
+  GetVGMPos: function: UInt32; cdecl;
+  GetVGMDataLen: function: Uint32; cdecl;
+  GetMasterVolume: function: Single; cdecl;
+  IsFadePlay: function: Boolean; cdecl;
+
+
+
 
 procedure LoadVGMLibrary(const LibraryName: string = VGMLIB_NAME);
 function VGMLoaded: Boolean;
@@ -241,17 +244,17 @@ end;
 procedure LoadVGMLibrary(const LibraryName: string);
 begin
   if library_handle <> NilHandle then
-    Exit;
+    Exit; // Уже загружена
 
   library_handle := LoadLibrary(LibraryName);
   if library_handle = NilHandle then
-    raise Exception.CreateFmt('Could not load VGMPlay library "%s"', [LibraryName]);
+    raise Exception.CreateFmt('Could not load library "%s"', [LibraryName]);
 
   try
     // Основные функции воспроизведения
     LoadProc(VGMPlay_Init, 'VGMPlay_Init');
     LoadProc(VGMPlay_Init2, 'VGMPlay_Init2');
-  {  LoadProc(StopVGM, 'StopVGM');
+    LoadProc(StopVGM, 'StopVGM');
     LoadProc(RestartVGM, 'RestartVGM');
     LoadProc(PauseVGM, 'PauseVGM');
     LoadProc(PlayVGM, 'PlayVGM');
@@ -260,7 +263,7 @@ begin
     // Работа с файлами
     LoadProc(OpenVGMFile, 'OpenVGMFile');
     LoadProc(CloseVGMFile, 'CloseVGMFile');
-    LoadProc(OpenVGMFileW, 'OpenVGMFileW');
+   // LoadProc(OpenVGMFileW, 'OpenVGMFileW');
 
     // Буферизация звука
     LoadProc(FillBuffer, 'FillBuffer');
@@ -279,11 +282,13 @@ begin
 
     // Работа с метаданными
     LoadProc(GetGZFileLength, 'GetGZFileLength');
-    LoadProc(GetGZFileLengthW, 'GetGZFileLengthW');
+ //   LoadProc(GetGZFileLengthW, 'GetGZFileLengthW');
     LoadProc(FreeGD3Tag, 'FreeGD3Tag');
-    LoadProc(ReadGD3Tag, 'ReadGD3Tag');
+   // LoadProc(ReadGD3Tag, 'ReadGD3Tag');
 
     // Вспомогательные функции
+
+
     LoadProc(CalcSampleMSec, 'CalcSampleMSec');
     LoadProc(CalcSampleMSecExt, 'CalcSampleMSecExt');
     LoadProc(GetChipName, 'GetChipName');
@@ -292,22 +297,25 @@ begin
 
     // Получение информации о файле
     LoadProc(GetVGMFileInfo, 'GetVGMFileInfo');
-    LoadProc(GetVGMFileInfoW, 'GetVGMFileInfoW');
-    LoadProc(ReadVGMHeader, 'ReadVGMHeader');
+  //  LoadProc(GetVGMFileInfoW, 'GetVGMFileInfoW');
+ //   LoadProc(ReadVGMHeader, 'ReadVGMHeader');
 
     // Конвертация сэмплов
     LoadProc(SampleVGM2Playback, 'SampleVGM2Playback');
     LoadProc(SamplePlayback2VGM, 'SamplePlayback2VGM');
 
-    // Расширенные данные чипов
-    LoadProc(ReadChipExtraData32, 'ReadChipExtraData32');
-    LoadProc(ReadChipExtraData16, 'ReadChipExtraData16');
-    LoadProc(ChangeChipSampleRate, 'ChangeChipSampleRate');
-    LoadProc(GeneralChipLists, 'GeneralChipLists');
+  // LoadProc(GetCurrentPosition, 'GetCurrentPosition');
 
-    // Отладочные функции
-    LoadProc(ShowVGMTag, 'ShowVGMTag');  }
 
+    LoadProc(GetVGMSamplesPlayed, 'GetVGMSamplesPlayed');
+    LoadProc(GetVGMTotalSamples, 'GetVGMTotalSamples');
+    LoadProc(GetVGMSampleRate, 'GetVGMSampleRate');
+
+    LoadProc(IsVGMPlayEnded, 'IsVGMPlayEnded');
+    LoadProc(GetVGMPos, 'GetVGMPos');
+    LoadProc(GetVGMDataLen, 'GetVGMDataLen');
+    LoadProc(GetMasterVolume, 'GetMasterVolume');
+    LoadProc(IsFadePlay, 'IsFadePlay');
   except
     UnloadLibrary(library_handle);
     library_handle := NilHandle;
