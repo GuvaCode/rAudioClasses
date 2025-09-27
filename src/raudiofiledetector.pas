@@ -16,6 +16,8 @@ function TestOpenMPT(const MusicFile: string): Boolean;
 function TestXMP(const MusicFile: string): Boolean;
 function TestASAP(const MusicFile: string): Boolean;
 function TestGME(const MusicFile: string): Boolean;
+function TestVGM(const MusicFile: string): Boolean;
+
 
 implementation
 
@@ -49,8 +51,6 @@ var
   tmpExt: String;
 begin
   Result := ptUnknown;
-  Exit(ptVGM);
-
 
   if not FileExists(AFileName) then Exit;
 
@@ -61,29 +61,31 @@ begin
 
     tmpExt := LowerCase(ExtractFileExt(AFileName));
 
+
+
     // Проверка модульных форматов через OpenMPT
-  if TestOpenMPT(AFileName) then
+    if TestOpenMPT(AFileName) then
       Exit(ptOpenMPT);
 
+    // Проверка VGM форматов
+    if TestVGM(AFileName) then
+      Exit(ptVGM);
 
     // Проверка GME форматов (консольные игры)
     if TestGME(AFileName) then
       Exit(ptGME);
 
-
     // Проверка ASAP форматов (Atari 8-bit)
     if TestASAP(AFileName) then
       Exit(ptASAP);
 
-
     // Проверка ZX Spectrum модулей через ZXTune
     if TestZxTune(AFileName) then
-     Exit(ptZxTune);
+      Exit(ptZxTune);
 
     // Проверка модульных форматов через XMP
     if TestXMP(AFileName) then
       Exit(ptXMP);
-
 
     // Commodore Amiga HivelyTracker audio module .hvl
     if (Header[0] = $48) and (Header[1] = $56) and
@@ -237,7 +239,6 @@ begin
   end;
 end;
 
-
 function TestXMP(const MusicFile: string): Boolean;
 var
   FileStream: TFileStream;
@@ -379,5 +380,51 @@ begin
       Result := False;
   end;
 end;
+
+function TestVGM(const MusicFile: string): Boolean;
+var
+  Header: TBytes;
+  tmpExt: String;
+begin
+  Result := False;
+
+  if not FileExists(MusicFile) then
+    Exit;
+
+  try
+    // Читаем заголовок файла
+    Header := ReadFileHeader(MusicFile, 0, 16);
+    if Length(Header) < 16 then Exit;
+
+    tmpExt := LowerCase(ExtractFileExt(MusicFile));
+
+    // Проверяем сигнатуру VGM файла ('Vgm ' на позиции 0x00)
+    if (Header[0] = $56) and (Header[1] = $67) and
+       (Header[2] = $6D) and (Header[3] = $20) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    // Проверяем сигнатуру GD3 тега (может быть в других позициях)
+    // 'Gd3 ' на позиции, указанной в заголовке VGM
+    if (Header[0] = $47) and (Header[1] = $64) and
+       (Header[2] = $33) and (Header[3] = $20) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    // Проверка по расширениям
+    if (tmpExt = '.vgm') or (tmpExt = '.vgz') then
+      Result := True;
+
+  except
+    on E: Exception do
+      Result := False;
+  end;
+end;
+
+
 
 end.

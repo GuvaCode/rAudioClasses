@@ -56,8 +56,15 @@
         <Filename Value="players/rgmeaudioplayer.pas"/>
         <UnitName Value="rGmeAudioPlayer"/>
       </Item>
+      <Item>
+        <Filename Value="players/rvgmstreamaudioplayer.pas"/>
+        <UnitName Value="rvgmstreamaudioplayer"/>
+      </Item>
     </Files>
     <RequiredPkgs>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
       <Item>
         <PackageName Value="FCL"/>
       </Item>

@@ -219,7 +219,7 @@ var
 
   IsVGMPlayEnded: function: boolean; cdecl;
   GetVGMPos: function: UInt32; cdecl;
-  GetVGMDataLen: function Uint32; cdecl;
+  GetVGMDataLen: function: Uint32; cdecl;
   GetMasterVolume: function: Single; cdecl;
   IsFadePlay: function: Boolean; cdecl;
 

@@ -167,6 +167,7 @@ var
   FileName: String;
   ResultCode: Integer;
 begin
+    // StopAudioStream(FStream);
     FreeVGMData;
       // Инициализируем воспроизведение
     VGMPlay_Init;
@@ -181,10 +182,15 @@ begin
     if not OpenVGMFile(PChar(FileName)) then
       raise Exception.Create('Failed to open VGM file');
 
+    PlayVGM();
+
     // Получаем информацию о файле
 
-  //  if ResultCode = 0 then
-   //   raise Exception.Create('Failed to get VGM file info');
+    ResultCode := GetVGMFileInfo(PChar(FileName), @FVGMHeader, FVGMTag);
+
+
+    if ResultCode = 0 then
+      raise Exception.Create('Failed to get VGM file info');
 
 
     // Устанавливаем режим зацикливания
@@ -192,11 +198,11 @@ begin
      RefreshPlaybackOptions; // VGMPlay автоматически обрабатывает зацикливание
 
     FFilename := MusicFile;
-    PlayVGM();
-    ResultCode := 0;
+
+   // ResultCode := 0;
 
 
-    ResultCode := GetVGMFileInfo(PChar(FileName), @FVGMHeader, FVGMTag);
+  //
 
 
   except
@@ -273,7 +279,7 @@ var
   ShouldStop: Boolean;
 begin
   if FCurrentPlayer = nil then Exit;
-
+  BytesRendered := 0;
   LocalPlayer := FCurrentPlayer;
   ShouldStop := False;
 
@@ -281,11 +287,11 @@ begin
   begin
     FPositionLock.Enter;
     try
-      {if not VGMLoaded or FIsPaused then
+      if not VGMLoaded or FIsPaused then
       begin
         FillChar(bufferData^, frames * DEFAULT_CHANNELS * (DEFAULT_BITS div 8), 0);
         Exit;
-      end;}
+      end;
 
       // Рендерим аудио через VGMPlay
       BytesRendered := FillBuffer(bufferData, frames);

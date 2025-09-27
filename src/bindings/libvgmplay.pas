@@ -15,7 +15,7 @@ const
       VGMLIB_NAME = 'libvgmplaylegacy.so';
   {$endif}
     {$ifdef windows}
-      VGMLIB_NAME = 'libvgm.dll';
+      VGMLIB_NAME = 'libvgmplaylegacy.dll';
   {$endif}
 
   FCC_VGM = $206D6756; // 'Vgm '

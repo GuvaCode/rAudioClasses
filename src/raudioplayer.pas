@@ -63,6 +63,7 @@ type
     FSidPlayer      :IMusicPlayer;
     FGMEPlayer      :IMusicPlayer;
     FVGMPlayer      :IMusicPlayer;
+    FVGMStreamPlayer:IMusicPlayer;
     FCurrentPlayer  :IMusicPlayer;
     // Тип
     FPlayerEngine: TPlayerType;
@@ -145,6 +146,7 @@ begin
   libasap.LoadASAPLibrary(FindLibName(libasap.DEFAULT_LIB_NAME));
   libgme.LoadLib(FindLibName(libgme.library_name));
   libvgmplay.LoadVGMLibrary(FindLibName(libvgmplay.VGMLIB_NAME));
+
   InitAudioDevice;
 
   // Инициализируем плееры
@@ -171,14 +173,15 @@ begin
   FCurrentPlayer.Stop;
   case FPlayerEngine of
     ptUnknown .. ptDefault: FCurrentPlayer := FDefaultPlayer; // По умолчанию
-    ptZxTune:  FCurrentPlayer := FZxTunePlayer;  // ZXtune
-    ptHively:  FCurrentPlayer := FHivelyPlayer;
-    ptOpenMPT: FCurrentPlayer := FOpenMptPlayer;
-    ptXmp:     FCurrentPlayer := FXmpPlayer;
-    ptStSound: FCurrentPlayer := FStSoundPlayer;
-    ptASAP:    FCurrentPlayer := FAsapPlayer;
-    ptGME:     FCurrentPlayer := FGMEPlayer;
-    ptVGM:     FCUrrentPlayer := FVGMPlayer;
+    ptZxTune:    FCurrentPlayer := FZxTunePlayer;  // ZXtune
+    ptHively:    FCurrentPlayer := FHivelyPlayer;
+    ptOpenMPT:   FCurrentPlayer := FOpenMptPlayer;
+    ptXmp:       FCurrentPlayer := FXmpPlayer;
+    ptStSound:   FCurrentPlayer := FStSoundPlayer;
+    ptASAP:      FCurrentPlayer := FAsapPlayer;
+    ptGME:       FCurrentPlayer := FGMEPlayer;
+    ptVGM:       FCUrrentPlayer := FVGMPlayer;
+
   end;
 
   if Assigned(FCurrentPlayer) then
@@ -322,6 +325,7 @@ begin
   FVGMPlayer.OnPause := @PauseHandleEvent;
   FVGMPlayer.OnEnd := @EndHandleEvent;
   FVGMPlayer.OnError := @ErrorHandleEvent;
+
 
 
   FCurrentPlayer := FDefaultPlayer; // По умолчанию

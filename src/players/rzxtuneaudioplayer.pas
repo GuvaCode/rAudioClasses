@@ -361,7 +361,7 @@ end;
 
 
 
-
+{
 
 procedure TZxTuneAudioPlayer.Play(const MusicFile: String; Track: Integer);
 var   Success: Boolean;
@@ -415,6 +415,86 @@ begin
     FPositionLock.Leave;
   end;
 end;
+}
+
+procedure TZxTuneAudioPlayer.Play(const MusicFile: String; Track: Integer);
+var   Success: Boolean;
+      SuccesBuffer: array[0..255] of AnsiChar;
+begin
+  if not FileExists(MusicFile) then
+  begin
+    CheckError(True, 'File not found: ' + MusicFile);
+    Exit;
+  end;
+
+  FPositionLock.Enter;
+  try
+    // Stop current playback
+    if IsAudioStreamPlaying(FStream) then
+      InternalStop;
+
+    // Проверка готовности аудиопотока (особенно важно для Windows)
+    if not IsAudioStreamReady(FStream) then
+    begin
+      CheckError(True, 'Audio stream not ready');
+      Exit;
+    end;
+
+    // Load new module
+    try
+      LoadModuleFile(MusicFile);
+      FCurrentTrack := 0;
+
+      // Дополнительная проверка для Windows
+      if FZxTunePlayer = nil then
+      begin
+        CheckError(True, 'ZXTune player not initialized');
+        Exit;
+      end;
+
+      // Start playback
+      FCurrentPlayer := Self;
+
+      // Пауза перед воспроизведением для стабилизации (Windows)
+      Sleep(10);
+
+      PlayAudioStream(FStream);
+
+      // Дополнительная пауза после старта
+      Sleep(5);
+
+      FIsPaused := False;
+      FTrackEndTriggered := False;
+
+      // Отладочная информация (может вызывать проблемы в Windows)
+      try
+        Success := ZXTune_GetModuleAttribute(FZxTuneModule, 'Type', @SuccesBuffer[0], SizeOf(SuccesBuffer));
+        WriteLn('Module type: ', string(SuccesBuffer));
+
+        Success := ZXTune_GetModuleAttribute(FZxTuneModule, 'Title', @SuccesBuffer[0], SizeOf(SuccesBuffer));
+        WriteLn('Module title: ', string(SuccesBuffer));
+
+        Success := ZXTune_GetModuleAttribute(FZxTuneModule, 'Author', @SuccesBuffer[0], SizeOf(SuccesBuffer));
+        WriteLn('Module author: ', string(SuccesBuffer));
+      except
+        // Игнорируем ошибки отладочного вывода
+      end;
+
+      if Assigned(FOnPlay) then
+        FOnPlay(Self, FCurrentTrack);
+
+    except
+      on E: Exception do
+      begin
+        CheckError(True, 'Error loading module: ' + E.Message);
+        InternalStop;
+      end;
+    end;
+  finally
+    FPositionLock.Leave;
+  end;
+end;
+
 
 procedure TZxTuneAudioPlayer.Pause;
 begin

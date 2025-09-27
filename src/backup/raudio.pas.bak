@@ -8,8 +8,10 @@ unit rAudio;
 interface
 
 uses
-  rAudioPlayer, rAudioFileDetector, rDefaultAudioPlayer, rHivelyAudioPlayer, 
-  rZxTuneAudioPlayer, libraudio, raudioExtra, LazarusPackageIntf;
+  rAudioPlayer, rAudioFileDetector, rDefaultAudioPlayer, rAsapAudioPlayer, 
+  rHivelyAudioPlayer, rOpenMptAudioPlayer, rStSoundAudioPlayer, 
+  rXmpAudioPlayer, rZxTuneAudioPlayer, rGmeAudioPlayer, rvgmstreamaudioplayer, 
+  LazarusPackageIntf;
 
 implementation
 
